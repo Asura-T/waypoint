@@ -46,8 +46,15 @@ for fid, fname, elev, rs in FLOORS:
         dx = P((x0 + x1) / 2)
         d.rectangle([dx - 18, dy - WALL, dx + 18, dy + WALL], fill=255)
         d.text((P((x0 + x1) / 2), P((y0 + y1) / 2)), name, fill=110, font=font(22), anchor='mm')
-        rooms.append({'id': f'demo-{fid}-{no}', 'floor': fid, 'no': no, 'name': f'Demo – {name}',
+        rooms.append({'id': f'demo-{fid}-{no}', 'floor': fid, 'type': 'room', 'no': no, 'name': f'Demo – {name}',
                       'x0': x0 + 0.15, 'y0': y0 + 0.15, 'x1': x1 - 0.15, 'y1': y1 - 0.15, 'demo': True})
+    # corridor drawn as two touching walkway pieces (they join into one path), plus a stair and an elevator
+    end = 28 if fid == 'demo-ground' else 26
+    extra = [('walkway', '', 'Demo – Corridor west', 1, 9, 14, 15), ('walkway', '', 'Demo – Corridor east', 14, 9, end, 15),
+             ('elevator', 'L1', 'Demo – Lift', 1.3, 9.3, 4.2, 12.2), ('stair', 'S1', 'Demo – Stair', end - 3.4, 9.3, end - 0.3, 12.4)]
+    for kind, no, name, x0, y0, x1, y1 in extra:
+        rooms.append({'id': f'demo-{fid}-{kind}-{x0:g}', 'floor': fid, 'type': kind, 'no': no, 'name': name,
+                      'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1, 'demo': True})
     d.text((P(1.2), P(H - 1.1)), f'{fname} - fictional demo plan, not a real building', fill=90, font=font(18), anchor='ls')
     d.text((P(20), P(12)), 'Corridor', fill=150, font=font(20), anchor='mm')
     img.save(os.path.join(ROOT, 'plans', f'{fid}.png'), optimize=True)

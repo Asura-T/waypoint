@@ -4,6 +4,7 @@
   {
    "id": "demo-demo-ground-G01",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G01",
    "name": "Demo – Reception",
    "x0": 1.15,
@@ -15,6 +16,7 @@
   {
    "id": "demo-demo-ground-G02",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G02",
    "name": "Demo – Meeting room",
    "x0": 13.15,
@@ -26,6 +28,7 @@
   {
    "id": "demo-demo-ground-G03",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G03",
    "name": "Demo – Server room",
    "x0": 22.15,
@@ -37,6 +40,7 @@
   {
    "id": "demo-demo-ground-G04",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G04",
    "name": "Demo – Open office",
    "x0": 28.15,
@@ -48,6 +52,7 @@
   {
    "id": "demo-demo-ground-G05",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G05",
    "name": "Demo – Kitchen",
    "x0": 1.15,
@@ -59,6 +64,7 @@
   {
    "id": "demo-demo-ground-G06",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G06",
    "name": "Demo – Toilets",
    "x0": 10.15,
@@ -70,6 +76,7 @@
   {
    "id": "demo-demo-ground-G07",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G07",
    "name": "Demo – Storage",
    "x0": 15.15,
@@ -81,6 +88,7 @@
   {
    "id": "demo-demo-ground-G08",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G08",
    "name": "Demo – Office",
    "x0": 22.15,
@@ -92,6 +100,7 @@
   {
    "id": "demo-demo-ground-G09",
    "floor": "demo-ground",
+   "type": "room",
    "no": "G09",
    "name": "Demo – Office",
    "x0": 28.15,
@@ -101,8 +110,57 @@
    "demo": true
   },
   {
+   "id": "demo-demo-ground-walkway-1",
+   "floor": "demo-ground",
+   "type": "walkway",
+   "no": "",
+   "name": "Demo – Corridor west",
+   "x0": 1,
+   "y0": 9,
+   "x1": 14,
+   "y1": 15,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-walkway-14",
+   "floor": "demo-ground",
+   "type": "walkway",
+   "no": "",
+   "name": "Demo – Corridor east",
+   "x0": 14,
+   "y0": 9,
+   "x1": 28,
+   "y1": 15,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-elevator-1.3",
+   "floor": "demo-ground",
+   "type": "elevator",
+   "no": "L1",
+   "name": "Demo – Lift",
+   "x0": 1.3,
+   "y0": 9.3,
+   "x1": 4.2,
+   "y1": 12.2,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-stair-24.6",
+   "floor": "demo-ground",
+   "type": "stair",
+   "no": "S1",
+   "name": "Demo – Stair",
+   "x0": 24.6,
+   "y0": 9.3,
+   "x1": 27.7,
+   "y1": 12.4,
+   "demo": true
+  },
+  {
    "id": "demo-demo-level-1-101",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "101",
    "name": "Demo – Board room",
    "x0": 1.15,
@@ -114,6 +172,7 @@
   {
    "id": "demo-demo-level-1-102",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "102",
    "name": "Demo – Office",
    "x0": 15.15,
@@ -125,6 +184,7 @@
   {
    "id": "demo-demo-level-1-103",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "103",
    "name": "Demo – Network closet",
    "x0": 22.15,
@@ -136,6 +196,7 @@
   {
    "id": "demo-demo-level-1-104",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "104",
    "name": "Demo – Open office",
    "x0": 26.15,
@@ -147,6 +208,7 @@
   {
    "id": "demo-demo-level-1-105",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "105",
    "name": "Demo – Training room",
    "x0": 1.15,
@@ -158,6 +220,7 @@
   {
    "id": "demo-demo-level-1-106",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "106",
    "name": "Demo – Toilets",
    "x0": 15.15,
@@ -169,6 +232,7 @@
   {
    "id": "demo-demo-level-1-107",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "107",
    "name": "Demo – Print room",
    "x0": 20.15,
@@ -180,12 +244,61 @@
   {
    "id": "demo-demo-level-1-108",
    "floor": "demo-level-1",
+   "type": "room",
    "no": "108",
    "name": "Demo – Office",
    "x0": 26.15,
    "y0": 15.15,
    "x1": 38.85,
    "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-walkway-1",
+   "floor": "demo-level-1",
+   "type": "walkway",
+   "no": "",
+   "name": "Demo – Corridor west",
+   "x0": 1,
+   "y0": 9,
+   "x1": 14,
+   "y1": 15,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-walkway-14",
+   "floor": "demo-level-1",
+   "type": "walkway",
+   "no": "",
+   "name": "Demo – Corridor east",
+   "x0": 14,
+   "y0": 9,
+   "x1": 26,
+   "y1": 15,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-elevator-1.3",
+   "floor": "demo-level-1",
+   "type": "elevator",
+   "no": "L1",
+   "name": "Demo – Lift",
+   "x0": 1.3,
+   "y0": 9.3,
+   "x1": 4.2,
+   "y1": 12.2,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-stair-22.6",
+   "floor": "demo-level-1",
+   "type": "stair",
+   "no": "S1",
+   "name": "Demo – Stair",
+   "x0": 22.6,
+   "y0": 9.3,
+   "x1": 25.7,
+   "y1": 12.4,
    "demo": true
   }
  ]

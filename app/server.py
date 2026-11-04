@@ -9,7 +9,8 @@ Standard library only. Configuration (environment variables):
 
 Data layout in DATA_DIR:
   floors.json   {"floors": [{id, name, elev, extent:[x0,y0,x1,y1], plan, demo?}]}
-  rooms.json    {"version": 1, "rooms": [{id, floor, no, name, x0, y0, x1, y1}]}
+  rooms.json    {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1}]}
+                type: room | walkway | stair | elevator | empty (opening to the floor below)
   plans/        floor plan images referenced by floors.json
   *.bak.json    previous version of each file, written before every save
 
@@ -33,6 +34,7 @@ MAX_UPLOAD = int(float(os.environ.get('WAYPOINT_MAX_UPLOAD_MB', '40')) * 1024 * 
 MAX_JSON = 10 * 1024 * 1024
 ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$')
 FILE_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$')
+ROOM_TYPES = ('room', 'walkway', 'stair', 'elevator', 'empty')
 IMAGE_TYPES = {b'\x89PNG': 'png', b'\xff\xd8\xff': 'jpg', b'RIFF': 'webp'}
 VERSION = os.environ.get('WAYPOINT_VERSION', 'dev')
 lock = threading.Lock()
@@ -93,7 +95,10 @@ def clean_floor(f):
 def clean_room(r):
     if not isinstance(r, dict) or not all(num(r.get(k)) for k in ('x0', 'y0', 'x1', 'y1')):
         raise ValueError('room needs numeric x0, y0, x1, y1')
-    out = {'id': str(r.get('id', ''))[:40], 'floor': str(r.get('floor', ''))[:40],
+    kind = r.get('type') or 'room'
+    if kind not in ROOM_TYPES:
+        raise ValueError(f'room type must be one of {", ".join(ROOM_TYPES)}')
+    out = {'id': str(r.get('id', ''))[:40], 'floor': str(r.get('floor', ''))[:40], 'type': kind,
            'no': str(r.get('no', ''))[:40], 'name': str(r.get('name', ''))[:120],
            **{k: float(r[k]) for k in ('x0', 'y0', 'x1', 'y1')}}
     if r.get('demo'):

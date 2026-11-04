@@ -4,7 +4,12 @@ Waypoint is an interactive 3D office map for planning office improvements and do
 
 You upload a floor plan image for each floor, draw a box around each room, and give it a room number (required) and a name (optional). Waypoint stacks the floors in a 3D view you can rotate, and it saves everything on your own server.
 
-- **Draw mode**: the floor plan is the background. Drag to draw a room box, then drag it to move it or drag its edges to resize it. Undo and redo are supported.
+- **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
+- **Box types**:
+  - **Room**: needs a room number. The name is optional.
+  - **Walkway**: corridors and paths. Walkway boxes that touch join into one connected path, in both the 2D and 3D views.
+  - **Stair / Elevator**: drawn as shafts that reach up to the next floor in 3D.
+  - **Empty**: an opening in the floor, such as an atrium or void. It cuts a hole in the floor plan, so the floor below shows through, in 2D and 3D.
 - **3D view**: shows all floors stacked, or one floor on its own. Hover over a room to see its details. Double-click a room to edit it.
 - **Floors…**: add, rename or delete floors, upload plan images, and set each floor's height and alignment.
 - **Export / Import**: download the rooms as JSON, or load them back from a JSON file.
@@ -44,7 +49,7 @@ Open `http://<server>:8080`. On the first start Waypoint copies the demo office 
 ```
 /data
 ├── floors.json        floors: name, height, position/size in metres, plan image
-├── rooms.json         rooms: floor, number, name, box in metres
+├── rooms.json         boxes: floor, type (room/walkway/stair/elevator/empty), number, name, box in metres
 ├── plans/             uploaded floor plan images
 └── *.bak.json         the previous version of each file, rewritten on every save
 ```
