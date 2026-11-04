@@ -1,0 +1,19 @@
+# Waypoint - run the published image from GitHub Container Registry (no local build).
+#   cp .env.example .env    # set WAYPOINT_DATA_PATH and WAYPOINT_IMAGE_TAG
+#   docker compose -f docker-compose.ghcr.yml pull
+#   docker compose -f docker-compose.ghcr.yml up -d
+# For a private image run `docker login ghcr.io` first (see docs/TRUENAS.md).
+services:
+  waypoint:
+    image: "ghcr.io/asura-t/waypoint:${WAYPOINT_IMAGE_TAG:-latest}"
+    container_name: waypoint
+    restart: unless-stopped
+    user: "${WAYPOINT_UID:-568}:${WAYPOINT_GID:-568}"
+    ports:
+      - "${WAYPOINT_PORT:-8080}:8080"
+    environment:
+      WAYPOINT_SEED_DEMO: "${WAYPOINT_SEED_DEMO:-true}"
+      WAYPOINT_MAX_UPLOAD_MB: "${WAYPOINT_MAX_UPLOAD_MB:-40}"
+      TZ: "${TZ:-Asia/Phnom_Penh}"
+    volumes:
+      - "${WAYPOINT_DATA_PATH:-./data}:/data"

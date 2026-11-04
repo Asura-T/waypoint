@@ -1,0 +1,19 @@
+# Alternative: run an image you built yourself on the NAS (no registry involved).
+# Apps → Discover Apps → ⋮ → Install via YAML. Build first (docs/TRUENAS.md, "Method B"):
+#   cd /mnt/<POOL>/apps/waypoint/src
+#   sudo docker build --build-arg WAYPOINT_VERSION=$(git rev-parse --short HEAD) -t waypoint:local .
+# Replace <POOL> with your pool name.
+services:
+  waypoint:
+    image: waypoint:local
+    pull_policy: never          # built locally; there is nothing to pull
+    container_name: waypoint
+    restart: unless-stopped
+    user: "568:568"
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: "Asia/Phnom_Penh"
+      WAYPOINT_SEED_DEMO: "true"
+    volumes:
+      - /mnt/<POOL>/apps/waypoint/data:/data

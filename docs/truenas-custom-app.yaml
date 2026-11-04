@@ -1,18 +1,25 @@
-# Paste into TrueNAS: Apps → Discover Apps → ⋮ → Install via YAML
-# Build the image first on the NAS (docs/TRUENAS.md step 3):
-#   sudo docker build -t waypoint:local /mnt/tank/apps/waypoint/src
-# Then change the host path below to your data dataset.
+# Waypoint for TrueNAS: Apps → Discover Apps → ⋮ → Install via YAML
+#
+# Before pasting, replace the two placeholders:
+#   <POOL>      your pool name, e.g. tank
+#   <IMAGE_TAG> the image tag to run. Prefer a fixed tag such as sha-1a2b3c4 or 1.2.0
+#               (from GitHub → Packages → waypoint) so updates and rollbacks are explicit.
+#               "latest" also works, but then you must pull it yourself to update.
+#
+# The data dataset must exist and be owned by 568:568 (the TrueNAS "apps" user).
+# Private image? Pull it once in the shell first (docs/TRUENAS.md, "Private image access");
+# never put a token in this file.
 services:
   waypoint:
-    image: waypoint:local
-    pull_policy: never          # built locally; there is no registry to pull from
+    image: ghcr.io/asura-t/waypoint:<IMAGE_TAG>
+    pull_policy: missing          # use the local copy if present, otherwise pull
     container_name: waypoint
     restart: unless-stopped
     user: "568:568"
     ports:
-      - "8080:8080"
+      - "8080:8080"               # host:container - change only the left side if 8080 is taken
     environment:
-      WAYPOINT_SEED_DEMO: "true"
-      TZ: "UTC"
+      TZ: "Asia/Phnom_Penh"
+      WAYPOINT_SEED_DEMO: "true"  # demo map only when /data is empty on first start
     volumes:
-      - /mnt/tank/apps/waypoint/data:/data
+      - /mnt/<POOL>/apps/waypoint/data:/data

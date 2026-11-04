@@ -2,6 +2,7 @@
 FROM python:3.12-alpine
 
 LABEL org.opencontainers.image.title="Waypoint" \
+      org.opencontainers.image.source="https://github.com/Asura-T/waypoint" \
       org.opencontainers.image.description="Interactive 3D office map for planning office improvements and documenting network equipment"
 
 ARG WAYPOINT_VERSION=dev
@@ -10,6 +11,9 @@ ENV PYTHONUNBUFFERED=1 \
     WAYPOINT_DATA_DIR=/data \
     WAYPOINT_HOST=0.0.0.0 \
     WAYPOINT_PORT=8080
+
+# tzdata so TZ (e.g. Asia/Phnom_Penh) applies to log timestamps
+RUN apk add --no-cache tzdata
 
 WORKDIR /opt/waypoint
 COPY app ./app

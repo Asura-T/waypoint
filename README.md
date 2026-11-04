@@ -19,7 +19,34 @@ It runs as **one Docker container** (Python standard library plus static files, 
 > **Your data stays out of git.** Real floor plans, room data, `.env`, PDFs and backups are all git-ignored.
 > The only map in this repository is the fictional office in [`demo/`](demo/README.md). Every part of it is labelled "DEMO".
 
+## Docker images
+
+GitHub Actions ([`.github/workflows/docker-image.yml`](.github/workflows/docker-image.yml)) builds the image for `linux/amd64` and publishes it to **`ghcr.io/asura-t/waypoint`**:
+
+| Event | Tags published |
+|---|---|
+| Push to `main` | `latest`, `sha-<commit>` |
+| Tag `v1.2.3` | `1.2.3`, `1.2`, `sha-<commit>` |
+| Pull request | builds the image to check it, **publishes nothing** |
+
+The commit is built into the image as `WAYPOINT_VERSION` and shown next to "Waypoint" in the page header. Publishing is automatic. **Deploying is not**: your server only changes when you pull a new tag and re-create the container.
+
+The package is private unless you change its visibility on GitHub. Its visibility is separate from the repository's. To pull a private image you need a *classic* token with `read:packages`; see [docs/TRUENAS.md](docs/TRUENAS.md#2-private-image-access).
+
 ## Quick start (any Docker host)
+
+**Published image** (no build):
+
+```bash
+mkdir -p data && sudo chown 568:568 data
+docker login ghcr.io -u Asura-T            # only while the package is private
+docker run -d --name waypoint --restart unless-stopped -p 8080:8080 \
+  -e TZ=Asia/Phnom_Penh -v "$PWD/data:/data" ghcr.io/asura-t/waypoint:latest
+```
+
+Or use [`docker-compose.ghcr.yml`](docker-compose.ghcr.yml) with `WAYPOINT_IMAGE_TAG` set in `.env`.
+
+**Build it yourself** from a checkout:
 
 ```bash
 git clone https://github.com/Asura-T/waypoint.git
@@ -31,7 +58,17 @@ WAYPOINT_VERSION=$(git rev-parse --short HEAD) docker compose up -d --build
 
 Open `http://<server>:8080`. On the first start Waypoint copies the demo office into the empty data folder. To start with an empty map instead, set `WAYPOINT_SEED_DEMO=false`. Remove the demo floors under **Floors…** once you have added your own.
 
-**Installing on TrueNAS:** see **[docs/TRUENAS.md](docs/TRUENAS.md)**. It covers building the image, installing through the Custom App screen or with Docker Compose, updating, backing up and restoring.
+**Installing on TrueNAS:** see **[docs/TRUENAS.md](docs/TRUENAS.md)**. It covers:
+- installing the published image with [`docs/truenas-custom-app.yaml`](docs/truenas-custom-app.yaml), or building the image on the NAS
+- access to a private image
+- updating to a new tag, and rolling back to an older one
+- backing up and restoring
+
+## Releasing a version
+
+```bash
+git tag v1.2.3 && git push origin v1.2.3     # publishes :1.2.3 and :1.2
+```
 
 ## Configuration
 
@@ -42,7 +79,8 @@ Open `http://<server>:8080`. On the first start Waypoint copies the demo office 
 | `WAYPOINT_UID` / `WAYPOINT_GID` | `568` | User the container runs as. 568 is TrueNAS's `apps` user |
 | `WAYPOINT_SEED_DEMO`       | `true`   | Copy the demo map into an empty data folder on the first start |
 | `WAYPOINT_MAX_UPLOAD_MB`   | `40`     | Largest floor plan image you can upload |
-| `TZ`                       | `UTC`    | Time zone for logs |
+| `WAYPOINT_IMAGE_TAG`       | `latest` | Image tag used by `docker-compose.ghcr.yml` |
+| `TZ`                       | `Asia/Phnom_Penh` | Time zone for log timestamps |
 
 ## What is stored in `/data`
 

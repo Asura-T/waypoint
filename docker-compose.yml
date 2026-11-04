@@ -1,4 +1,5 @@
-# Waypoint - build locally and run as one service.
+# Waypoint - build the image from this checkout and run it (alternative to the published image,
+# see docker-compose.ghcr.yml).
 #   cp .env.example .env    # then edit WAYPOINT_DATA_PATH etc.
 #   docker compose up -d --build
 services:
@@ -18,7 +19,7 @@ services:
     environment:
       WAYPOINT_SEED_DEMO: "${WAYPOINT_SEED_DEMO:-true}"
       WAYPOINT_MAX_UPLOAD_MB: "${WAYPOINT_MAX_UPLOAD_MB:-40}"
-      TZ: "${TZ:-UTC}"
+      TZ: "${TZ:-Asia/Phnom_Penh}"
     volumes:
       # Saved maps live here. On TrueNAS point this at a dataset, e.g. /mnt/tank/apps/waypoint/data
       - "${WAYPOINT_DATA_PATH:-./data}:/data"
