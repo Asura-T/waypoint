@@ -1,0 +1,30 @@
+{
+ "floors": [
+  {
+   "id": "demo-ground",
+   "name": "DEMO Ground",
+   "elev": 0.0,
+   "extent": [
+    0,
+    0,
+    40,
+    24
+   ],
+   "plan": "plans/demo-ground.png",
+   "demo": true
+  },
+  {
+   "id": "demo-level-1",
+   "name": "DEMO Level 1",
+   "elev": 4.0,
+   "extent": [
+    0,
+    0,
+    40,
+    24
+   ],
+   "plan": "plans/demo-level-1.png",
+   "demo": true
+  }
+ ]
+}

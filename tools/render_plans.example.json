@@ -1,0 +1,14 @@
+{
+  "_comment": "Example only. Copy this file, fill in your building, and keep the real copy out of git.",
+  "reference_pdf": "ground.pdf",
+  "grid_font": "Calibri",
+  "grid_x": ["A", "F"],
+  "grid_x_m": 40.0,
+  "grid_y": ["5", "1"],
+  "pixels_per_metre": 28,
+  "margin_m": 10,
+  "floors": [
+    {"id": "GF", "name": "GF", "pdf": "ground.pdf", "elev": 0.0},
+    {"id": "1F", "name": "1F", "pdf": "first.pdf", "elev": 4.0}
+  ]
+}

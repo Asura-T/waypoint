@@ -1,0 +1,192 @@
+{
+ "version": 1,
+ "rooms": [
+  {
+   "id": "demo-demo-ground-G01",
+   "floor": "demo-ground",
+   "no": "G01",
+   "name": "Demo – Reception",
+   "x0": 1.15,
+   "y0": 1.15,
+   "x1": 12.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G02",
+   "floor": "demo-ground",
+   "no": "G02",
+   "name": "Demo – Meeting room",
+   "x0": 13.15,
+   "y0": 1.15,
+   "x1": 21.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G03",
+   "floor": "demo-ground",
+   "no": "G03",
+   "name": "Demo – Server room",
+   "x0": 22.15,
+   "y0": 1.15,
+   "x1": 27.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G04",
+   "floor": "demo-ground",
+   "no": "G04",
+   "name": "Demo – Open office",
+   "x0": 28.15,
+   "y0": 1.15,
+   "x1": 38.85,
+   "y1": 14.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G05",
+   "floor": "demo-ground",
+   "no": "G05",
+   "name": "Demo – Kitchen",
+   "x0": 1.15,
+   "y0": 15.15,
+   "x1": 9.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G06",
+   "floor": "demo-ground",
+   "no": "G06",
+   "name": "Demo – Toilets",
+   "x0": 10.15,
+   "y0": 15.15,
+   "x1": 14.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G07",
+   "floor": "demo-ground",
+   "no": "G07",
+   "name": "Demo – Storage",
+   "x0": 15.15,
+   "y0": 15.15,
+   "x1": 21.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G08",
+   "floor": "demo-ground",
+   "no": "G08",
+   "name": "Demo – Office",
+   "x0": 22.15,
+   "y0": 15.15,
+   "x1": 27.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-ground-G09",
+   "floor": "demo-ground",
+   "no": "G09",
+   "name": "Demo – Office",
+   "x0": 28.15,
+   "y0": 15.15,
+   "x1": 38.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-101",
+   "floor": "demo-level-1",
+   "no": "101",
+   "name": "Demo – Board room",
+   "x0": 1.15,
+   "y0": 1.15,
+   "x1": 14.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-102",
+   "floor": "demo-level-1",
+   "no": "102",
+   "name": "Demo – Office",
+   "x0": 15.15,
+   "y0": 1.15,
+   "x1": 21.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-103",
+   "floor": "demo-level-1",
+   "no": "103",
+   "name": "Demo – Network closet",
+   "x0": 22.15,
+   "y0": 1.15,
+   "x1": 25.85,
+   "y1": 8.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-104",
+   "floor": "demo-level-1",
+   "no": "104",
+   "name": "Demo – Open office",
+   "x0": 26.15,
+   "y0": 1.15,
+   "x1": 38.85,
+   "y1": 14.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-105",
+   "floor": "demo-level-1",
+   "no": "105",
+   "name": "Demo – Training room",
+   "x0": 1.15,
+   "y0": 15.15,
+   "x1": 14.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-106",
+   "floor": "demo-level-1",
+   "no": "106",
+   "name": "Demo – Toilets",
+   "x0": 15.15,
+   "y0": 15.15,
+   "x1": 19.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-107",
+   "floor": "demo-level-1",
+   "no": "107",
+   "name": "Demo – Print room",
+   "x0": 20.15,
+   "y0": 15.15,
+   "x1": 25.85,
+   "y1": 22.85,
+   "demo": true
+  },
+  {
+   "id": "demo-demo-level-1-108",
+   "floor": "demo-level-1",
+   "no": "108",
+   "name": "Demo – Office",
+   "x0": 26.15,
+   "y0": 15.15,
+   "x1": 38.85,
+   "y1": 22.85,
+   "demo": true
+  }
+ ]
+}

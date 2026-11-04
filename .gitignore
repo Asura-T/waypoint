@@ -1,0 +1,19 @@
+# Runtime data and real office maps - never commit these
+/data/
+*.bak.json
+*.tmp
+.env
+
+# Source drawings of real buildings
+*.pdf
+*.dwg
+*.dxf
+
+# Local tooling
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+.claude/settings.local.json
+.claude/

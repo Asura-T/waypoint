@@ -1,0 +1,6 @@
+# Only app/ and demo/ are copied into the image; keep everything else out of the build context.
+*
+!app/
+!demo/
+**/__pycache__
+**/*.pyc

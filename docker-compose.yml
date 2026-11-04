@@ -1,0 +1,24 @@
+# Waypoint - build locally and run as one service.
+#   cp .env.example .env    # then edit WAYPOINT_DATA_PATH etc.
+#   docker compose up -d --build
+services:
+  waypoint:
+    build:
+      context: .
+      args:
+        # shown in the app header so you can confirm an update; set with
+        # WAYPOINT_VERSION=$(git rev-parse --short HEAD) docker compose up -d --build
+        WAYPOINT_VERSION: "${WAYPOINT_VERSION:-dev}"
+    image: waypoint:local          # local tag only; nothing is pushed to a registry
+    container_name: waypoint
+    restart: unless-stopped
+    user: "${WAYPOINT_UID:-568}:${WAYPOINT_GID:-568}"
+    ports:
+      - "${WAYPOINT_PORT:-8080}:8080"
+    environment:
+      WAYPOINT_SEED_DEMO: "${WAYPOINT_SEED_DEMO:-true}"
+      WAYPOINT_MAX_UPLOAD_MB: "${WAYPOINT_MAX_UPLOAD_MB:-40}"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      # Saved maps live here. On TrueNAS point this at a dataset, e.g. /mnt/tank/apps/waypoint/data
+      - "${WAYPOINT_DATA_PATH:-./data}:/data"

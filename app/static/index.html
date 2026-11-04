@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--panel2:#1d212a;--line:#2a2f3a;--text:#e6e8ec;--muted:#8b93a3;--accent:#4f8cff;--sel:#ff9f43;--bad:#ff5d73}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+  button,input{font:inherit;color:inherit}
+  button{background:#222733;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+  button:hover{border-color:#3b4252}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  header{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto}
+  header h1{font-size:15px;margin:0 6px 0 0;white-space:nowrap}
+  .grp{display:flex;gap:4px;align-items:center}
+  .sep{width:1px;height:26px;background:var(--line);flex:none}
+  #status{color:var(--muted);font-size:12px;white-space:nowrap;margin-left:auto}
+  #status.bad{color:var(--bad)}
+  aside{position:fixed;top:52px;left:0;bottom:0;width:290px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:4}
+  main{position:fixed;top:52px;left:290px;right:0;bottom:0}
+  #cv{display:block;width:100%;height:100%;touch-action:none}
+  #three{position:absolute;inset:0;display:none}
+  .sec{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .sec h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
+  .field{display:grid;gap:4px;margin-bottom:10px}
+  .field span{font-size:12px;color:var(--muted)}
+  .field input{background:#11141a;border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%}
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .field input.bad{border-color:var(--bad)}
+  .warn{color:var(--bad);font-size:12px;min-height:16px}
+  .empty{color:var(--muted);font-size:13px}
+  #list{flex:1;overflow:auto;padding:6px}
+  .room{display:flex;gap:10px;align-items:baseline;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .room:hover{background:var(--panel2)}
+  .room.sel{background:#2b2418;outline:1px solid var(--sel)}
+  .room b{min-width:52px}
+  .room .nm{color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .room .nn{color:var(--bad)}
+  .help{font-size:12px;color:var(--muted);line-height:1.6}
+  kbd{background:#222733;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:11px}
+  #tip{position:fixed;pointer-events:none;background:rgba(23,26,33,.96);border:1px solid var(--line);border-radius:10px;padding:8px 10px;z-index:6;display:none}
+  #tip .m{color:var(--muted);font-size:12px}
+  .only3d{display:none}
+  body.mode3d .only3d{display:flex}
+  body.mode3d .only2d{display:none}
+  .ctl3d{display:grid;gap:8px}
+  .ctl3d label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  #banner{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:5;background:#3a2a10;border:1px solid #8a6420;color:#ffd79a;border-radius:10px;padding:6px 12px;font-size:13px;pointer-events:none;margin-left:145px}
+  #emptyMain{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;color:var(--muted);flex-direction:column;gap:12px}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;width:min(760px,96vw);max-height:90vh}
+  dialog::backdrop{background:rgba(0,0,0,.55)}
+  .dlg-h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .dlg-h h2{margin:0;font-size:16px}
+  .dlg-b{padding:12px 16px;overflow:auto;max-height:calc(90vh - 120px)}
+  .dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+  table.fl{width:100%;border-collapse:collapse;font-size:13px}
+  table.fl th{color:var(--muted);font-weight:500;text-align:left;padding:4px 6px}
+  table.fl td{padding:4px 6px;vertical-align:middle}
+  table.fl input{background:#11141a;border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%}
+  table.fl input.n{width:80px}
+  table.fl img{height:34px;width:52px;object-fit:cover;border-radius:4px;background:#fff;display:block}
+  .tag{font-size:11px;background:#3a2a10;color:#ffd79a;border-radius:4px;padding:1px 5px;margin-left:4px}
+  .note{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+  .err{color:var(--bad);font-size:13px;min-height:18px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (max-width:760px){aside{top:auto;height:40%;width:auto;right:0;border-right:0;border-top:1px solid var(--line)}main{left:0;bottom:40%}}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head>
+<body>
+<header>
+  <h1>Waypoint <small id="ver" style="color:var(--muted);font-weight:400;font-size:11px"></small></h1>
+  <div class="grp" id="floorTabs"></div>
+  <div class="sep"></div>
+  <div class="grp"><button id="mDraw" class="on">✏️ Draw</button><button id="m3d">🧊 3D view</button></div>
+  <div class="sep only2d"></div>
+  <div class="grp only2d">
+    <button id="tDraw" class="on" title="Draw boxes (B)">▭ Box</button>
+    <button id="tPan" title="Pan (H) — or hold Space / right-drag">✋ Pan</button>
+    <button id="bFit" title="Fit floor (F)">Fit</button>
+    <button id="bUndo" title="Undo (Ctrl+Z)">↶</button>
+    <button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp"><button id="bFloors">Floors…</button><button id="bExport">Export</button><button id="bImport">Import</button><input id="fImport" type="file" accept=".json,application/json" hidden></div>
+  <div id="status">Loading…</div>
+</header>
+
+<aside>
+  <div class="sec only2d" id="editSec">
+    <h2>Selected room</h2>
+    <div id="editEmpty" class="empty">Drag on the plan to draw a box around a room.</div>
+    <div id="editForm" style="display:none">
+      <label class="field"><span>Room No. (required)</span><input id="iNo" autocomplete="off" placeholder="e.g. G01"></label>
+      <label class="field"><span>Name (optional)</span><input id="iName" autocomplete="off" placeholder="e.g. Meeting room"></label>
+      <div class="warn" id="warn"></div>
+      <div class="grp"><button id="bDone">Done ⏎</button><button id="bDel">Delete</button></div>
+    </div>
+  </div>
+  <div class="sec only3d" style="flex-direction:column" id="ctl3dSec">
+    <h2>3D view</h2>
+    <div class="ctl3d">
+      <label>Floor spacing <input id="explode" type="range" min="1" max="4" step="0.05" value="1.8"></label>
+      <label>Box height <input id="hScale" type="range" min="0.2" max="1" step="0.05" value="0.7"></label>
+      <label>Show plan drawing <input id="showPlan" type="checkbox" checked></label>
+      <label>Show labels <input id="showLabels" type="checkbox" checked></label>
+    </div>
+  </div>
+  <div class="sec" style="padding-bottom:6px"><h2 id="listTitle">Rooms</h2></div>
+  <div id="list"></div>
+  <div class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
+    Drag on empty space to draw · drag a box to move · drag its corners/edges to resize ·
+    <kbd>Del</kbd> delete · <kbd>Space</kbd>+drag or right-drag to pan · scroll to zoom
+  </div>
+</aside>
+
+<main>
+  <canvas id="cv"></canvas>
+  <div id="emptyMain"><div>No floors yet.</div><button class="primary" id="bFirstFloor">Add your first floor…</button></div>
+  <div id="three"></div>
+</main>
+<div id="tip"></div>
+<div id="banner">Demo data — replace it with your own floors under “Floors…”</div>
+
+<dialog id="dlgFloors">
+  <div class="dlg-h"><h2>Floors</h2><button id="fClose" title="Close">✕</button></div>
+  <div class="dlg-b">
+    <table class="fl">
+      <thead><tr><th>Plan</th><th>Name</th><th>Height (m)</th><th>Width (m)</th><th>Left (m)</th><th>Top (m)</th><th></th></tr></thead>
+      <tbody id="fRows"></tbody>
+    </table>
+    <p class="note">
+      <b>Plan</b>: upload a PNG, JPEG or WebP image of the floor. <b>Height</b> is the floor level above ground, used to stack floors in 3D.
+      <b>Width</b> is the real width the image covers, in metres; the depth follows from the image shape.
+      <b>Left/Top</b> shift the image so floors line up. Floors exported with <code>tools/render_plans.py</code> are already aligned.
+    </p>
+    <div class="err" id="fErr"></div>
+  </div>
+  <div class="dlg-f"><button id="fAdd">+ Add floor</button><span style="flex:1"></span><button id="fCancel">Cancel</button><button class="primary" id="fSave">Save floors</button></div>
+</dialog>
+<input id="fPlanFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+
+<script type="module">
+// ---------- data ----------
+let floors = [];             // {id, name, elev, extent:[x0,y0,x1,y1] (m), plan, demo?}
+let rooms = [];              // {id, floor (floor id), no, name, x0,y0,x1,y1}  (metres, shared grid for all floors)
+let serverOK = true;
+try {
+  const r = await fetch('api/map');
+  if (!r.ok) throw 0;
+  ({floors, rooms} = await r.json());
+} catch { serverOK = false; }
+const sortFloors = () => floors.sort((a,b) => a.elev - b.elev);
+sortFloors();
+const planUrl = f => f.plan ? 'files/' + f.plan : '';
+
+let cur = 0;                 // floor index
+let mode = '2d';
+let selId = null;
+const $ = id => document.getElementById(id);
+const floorRooms = fi => floors[fi] ? rooms.filter(r => r.floor === floors[fi].id) : [];
+const floorName = id => floors.find(f => f.id === id)?.name ?? id;
+const byId = id => rooms.find(r => r.id === id);
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ---------- saving ----------
+let saveTimer = null;
+function setStatus(t, bad=false){ $('status').textContent = t; $('status').classList.toggle('bad', bad); }
+function scheduleSave(){
+  const payload = {version:1, rooms};
+  if (!serverOK) { setStatus('Not saved — cannot reach the Waypoint server', true); return; }
+  setStatus('Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('api/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      if (!r.ok) throw 0;
+      setStatus(`Saved · ${rooms.length} rooms`);
+    } catch { setStatus('Save failed — check the server, then make any change to retry', true); }
+  }, 500);
+}
+
+// ---------- undo ----------
+const undoStack = [], redoStack = [];
+function snapshot(){ undoStack.push(JSON.stringify(rooms)); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; }
+function undo(){ if (!undoStack.length) return; redoStack.push(JSON.stringify(rooms)); rooms = JSON.parse(undoStack.pop()); afterChange(); }
+function redo(){ if (!redoStack.length) return; undoStack.push(JSON.stringify(rooms)); rooms = JSON.parse(redoStack.pop()); afterChange(); }
+function afterChange(){ if (selId && !byId(selId)) selId = null; scheduleSave(); refreshUI(); draw(); }
+
+// ---------- room numbering ----------
+const PREFIX = {GF:'G'};
+function suggestNo(){
+  const fr = floorRooms(cur), last = fr[fr.length-1];
+  const taken = new Set(fr.map(r => r.no));
+  let base, n, pad;
+  const m = last && /^(.*?)(\d+)$/.exec(last.no);
+  if (m) { base = m[1]; n = +m[2] + 1; pad = m[2].length; }
+  else { const f = floors[cur].name; base = PREFIX[f] ?? f.replace(/F$/i,''); n = 1; pad = 2; }
+  let s; do { s = base + String(n++).padStart(pad,'0'); } while (taken.has(s));
+  return s;
+}
+
+// ---------- floor tabs ----------
+const tabs = $('floorTabs');
+function buildTabs(){
+  tabs.innerHTML = '';
+  const list = mode === '3d' ? [['All',-1], ...floors.map((f,i)=>[f.name,i])] : floors.map((f,i)=>[f.name,i]);
+  list.forEach(([n,i]) => {
+    const b = document.createElement('button'); b.textContent = n;
+    b.classList.toggle('on', i === cur);
+    b.onclick = () => setFloor(i);
+    tabs.appendChild(b);
+  });
+}
+function setFloor(i){
+  cur = i; selId = null;
+  buildTabs(); refreshUI(); updateChrome();
+  if (mode === '2d') { loadImg(cur).then(() => { fit(); draw(); }); }
+  else view3d.setFloor(i);
+}
+
+// ---------- side panel ----------
+function refreshUI(){
+  // list
+  const fr = cur < 0 ? rooms : floorRooms(cur);
+  $('listTitle').textContent = cur < 0 ? `All rooms (${fr.length})` : floors[cur] ? `Rooms on ${floors[cur].name} (${fr.length})` : 'Rooms';
+  const sorted = [...fr].sort((a,b) => (a.floor+a.no).localeCompare(b.floor+b.no, undefined, {numeric:true}));
+  $('list').innerHTML = sorted.length ? '' : '<div class="empty" style="padding:8px">No rooms yet.</div>';
+  sorted.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'room' + (r.id === selId ? ' sel' : '');
+    d.innerHTML = `<b class="${r.no?'':'nn'}"></b><span class="nm"></span>`;
+    d.querySelector('b').textContent = r.no || '(no number)';
+    d.querySelector('.nm').textContent = (cur < 0 ? floorName(r.floor) + ' · ' : '') + (r.name || '');
+    d.onclick = () => { if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
+    $('list').appendChild(d);
+  });
+  // editor
+  const r = selId && byId(selId);
+  $('editEmpty').style.display = r ? 'none' : '';
+  $('editForm').style.display = r ? '' : 'none';
+  if (r) {
+    if (document.activeElement !== $('iNo')) $('iNo').value = r.no;
+    if (document.activeElement !== $('iName')) $('iName').value = r.name;
+    validate(r);
+  }
+  $('bUndo').disabled = !undoStack.length; $('bRedo').disabled = !redoStack.length;
+}
+function validate(r){
+  let w = '';
+  if (!r.no.trim()) w = 'Room number is required.';
+  else if (rooms.some(o => o !== r && o.floor === r.floor && o.no.trim() === r.no.trim())) w = `${r.no} is already used on ${floorName(r.floor)}.`;
+  $('warn').textContent = w; $('iNo').classList.toggle('bad', !!w);
+}
+function selectRoom(id, focusNo=false){
+  selId = id; refreshUI(); draw();
+  if (focusNo) { $('iNo').focus(); $('iNo').select(); }
+  const el = $('list').querySelector('.sel'); if (el) el.scrollIntoView({block:'nearest'});
+}
+let editSnap = false;
+for (const [inp, key] of [['iNo','no'],['iName','name']]) {
+  $(inp).addEventListener('focus', () => editSnap = false);
+  $(inp).addEventListener('input', e => {
+    const r = byId(selId); if (!r) return;
+    if (!editSnap) { snapshot(); editSnap = true; }
+    r[key] = e.target.value; scheduleSave(); refreshUI(); draw();
+  });
+  $(inp).addEventListener('keydown', e => {
+    if (e.key === 'Enter') { if (inp === 'iNo') { $('iName').focus(); } else finishEdit(); e.preventDefault(); }
+    if (e.key === 'Escape') finishEdit();
+  });
+}
+function finishEdit(){ document.activeElement.blur(); selId = null; refreshUI(); draw(); }
+$('bDone').onclick = finishEdit;
+$('bDel').onclick = () => deleteSel();
+function deleteSel(){ if (!selId) return; snapshot(); rooms = rooms.filter(r => r.id !== selId); selId = null; afterChange(); }
+
+// ---------- 2D editor ----------
+const cv = $('cv'), ctx = cv.getContext('2d');
+const imgs = {};
+function loadImg(fi){
+  const f = floors[fi], url = f && planUrl(f);
+  if (!url) return Promise.resolve();
+  if (imgs[url]) return imgs[url].ready;
+  const im = new Image(); const ready = new Promise(res => { im.onload = res; im.onerror = res; }); im.src = url;
+  imgs[url] = {im, ready}; return ready;
+}
+let view = {s:6, ox:0, oy:0};      // screen px per metre + offset
+const toScr = (x,y) => [x*view.s + view.ox, y*view.s + view.oy];
+const toW = (sx,sy) => [(sx - view.ox)/view.s, (sy - view.oy)/view.s];
+function resize(){ const d = devicePixelRatio||1; cv.width = cv.clientWidth*d; cv.height = cv.clientHeight*d; ctx.setTransform(d,0,0,d,0,0); draw(); }
+function fit(){
+  if (!floors[Math.max(cur,0)]) return draw();
+  const [x0,y0,x1,y1] = floors[Math.max(cur,0)].extent, W = cv.clientWidth, H = cv.clientHeight;
+  view.s = Math.min(W/(x1-x0), H/(y1-y0)) * 0.96;
+  view.ox = (W - (x1-x0)*view.s)/2 - x0*view.s; view.oy = (H - (y1-y0)*view.s)/2 - y0*view.s; draw();
+}
+function centerOn(r){
+  const W = cv.clientWidth, H = cv.clientHeight;
+  view.s = Math.max(view.s, Math.min(W/(r.x1-r.x0), H/(r.y1-r.y0)) * 0.35);
+  view.ox = W/2 - (r.x0+r.x1)/2*view.s; view.oy = H/2 - (r.y0+r.y1)/2*view.s; draw();
+}
+function draw(){
+  if (mode !== '2d' || cur < 0) return;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  ctx.fillStyle = '#0f1115'; ctx.fillRect(0,0,W,H);
+  const f = floors[cur]; if (!f) return;
+  const e = imgs[planUrl(f)], [x0,y0,x1,y1] = f.extent, [a,b] = toScr(x0,y0);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(a, b, (x1-x0)*view.s, (y1-y0)*view.s);
+  if (e && e.im.complete && e.im.naturalWidth) {
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(e.im, a, b, (x1-x0)*view.s, (y1-y0)*view.s);
+  }
+  const list = floorRooms(cur);
+  if (drag && drag.kind === 'new') list.push(drag.r);
+  for (const r of list) {
+    const sel = r.id === selId;
+    const [a,b] = toScr(r.x0,r.y0), w = (r.x1-r.x0)*view.s, h = (r.y1-r.y0)*view.s;
+    ctx.fillStyle = sel ? 'rgba(255,159,67,.22)' : (r.no ? 'rgba(79,140,255,.16)' : 'rgba(255,93,115,.18)');
+    ctx.fillRect(a,b,w,h);
+    ctx.lineWidth = sel ? 2.5 : 1.6; ctx.strokeStyle = sel ? '#ff9f43' : (r.no ? '#4f8cff' : '#ff5d73');
+    ctx.strokeRect(a,b,w,h);
+    // label
+    const fs = Math.max(9, Math.min(22, Math.min(w/5, h/3)));
+    if (w > 22 && h > 14) {
+      ctx.save(); ctx.beginPath(); ctx.rect(a,b,w,h); ctx.clip();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const lines = [[r.no || '?', `700 ${fs}px system-ui`]];
+      if (r.name && h > fs*2.4) lines.push([r.name, `400 ${fs*0.72}px system-ui`]);
+      const lh = fs*1.1, top = b + h/2 - (lines.length-1)*lh/2;
+      lines.forEach(([t,font],k) => {
+        ctx.font = font; ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.9)';
+        ctx.strokeText(t, a+w/2, top + k*lh, w-6);
+        ctx.fillStyle = sel ? '#a34f00' : '#0b3a99'; ctx.fillText(t, a+w/2, top + k*lh, w-6);
+      });
+      ctx.restore();
+    }
+    if (sel) handles(r).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#ff9f43'; ctx.lineWidth=1.5; ctx.fillRect(p-4,q-4,8,8); ctx.strokeRect(p-4,q-4,8,8); });
+  }
+}
+const HN = ['nw','n','ne','e','se','s','sw','w'];
+function handles(r){ const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
+  return [[r.x0,r.y0],[mx,r.y0],[r.x1,r.y0],[r.x1,my],[r.x1,r.y1],[mx,r.y1],[r.x0,r.y1],[r.x0,my]]; }
+const CURSOR = {nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize'};
+function hitHandle(sx,sy){
+  const r = selId && byId(selId); if (!r || !floors[cur] || r.floor !== floors[cur].id) return null;
+  const k = handles(r).findIndex(([hx,hy]) => { const [p,q] = toScr(hx,hy); return Math.abs(p-sx) < 7 && Math.abs(q-sy) < 7; });
+  return k < 0 ? null : HN[k];
+}
+function hitRoom(wx,wy){
+  const fr = floorRooms(cur);
+  // smallest box under the cursor wins, so rooms drawn inside larger areas stay clickable
+  return fr.filter(r => wx>=r.x0 && wx<=r.x1 && wy>=r.y0 && wy<=r.y1).sort((a,b)=>(a.x1-a.x0)*(a.y1-a.y0)-(b.x1-b.x0)*(b.y1-b.y0))[0];
+}
+
+let tool = 'draw', space = false, drag = null;
+function setTool(t){ tool = t; $('tDraw').classList.toggle('on', t==='draw'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
+$('tDraw').onclick = () => setTool('draw'); $('tPan').onclick = () => setTool('pan');
+$('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  const sx = e.offsetX, sy = e.offsetY, [wx,wy] = toW(sx,sy);
+  if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor='grabbing'; return; }
+  if (!floors[cur]) return;
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+  const h = hitHandle(sx,sy);
+  if (h) { const r = byId(selId); drag = {kind:'resize', h, r, orig:{...r}, moved:false}; return; }
+  const r = hitRoom(wx,wy);
+  if (r) { selectRoom(r.id); drag = {kind:'move', r, wx, wy, orig:{...r}, moved:false}; return; }
+  selId = null; refreshUI();
+  drag = {kind:'new', wx, wy, r:{id:uid(), floor:floors[cur].id, no:'', name:'', x0:wx, y0:wy, x1:wx, y1:wy}};
+});
+cv.addEventListener('pointermove', e => {
+  const sx = e.offsetX, sy = e.offsetY, [wx,wy] = toW(sx,sy);
+  if (!drag) {
+    if (space || tool==='pan') return;
+    const h = hitHandle(sx,sy); cv.style.cursor = h ? CURSOR[h] : (hitRoom(wx,wy) ? 'move' : 'crosshair'); return;
+  }
+  if (drag.kind === 'pan') { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; draw(); return; }
+  if (drag.kind === 'new') { const r = drag.r; r.x0 = Math.min(drag.wx,wx); r.x1 = Math.max(drag.wx,wx); r.y0 = Math.min(drag.wy,wy); r.y1 = Math.max(drag.wy,wy); draw(); return; }
+  if (!drag.moved) { snapshot(); drag.moved = true; }
+  const r = drag.r, o = drag.orig;
+  if (drag.kind === 'move') { const dx = wx-drag.wx, dy = wy-drag.wy; r.x0=o.x0+dx; r.x1=o.x1+dx; r.y0=o.y0+dy; r.y1=o.y1+dy; }
+  else {
+    if (drag.h.includes('w')) r.x0 = Math.min(wx, o.x1-0.3); if (drag.h.includes('e')) r.x1 = Math.max(wx, o.x0+0.3);
+    if (drag.h.includes('n')) r.y0 = Math.min(wy, o.y1-0.3); if (drag.h.includes('s')) r.y1 = Math.max(wy, o.y0+0.3);
+  }
+  draw();
+});
+cv.addEventListener('pointerup', () => {
+  const d = drag; drag = null; if (!d) return;
+  if (d.kind === 'pan') { setTool(tool); return; }
+  if (d.kind === 'new') {
+    const r = d.r;
+    if ((r.x1-r.x0)*view.s < 8 || (r.y1-r.y0)*view.s < 8) { draw(); return; }   // just a click
+    snapshot(); round(r); r.no = suggestNo(); rooms.push(r); afterChange(); selectRoom(r.id, true); return;
+  }
+  if (d.moved) { round(d.r); afterChange(); }
+});
+const round = r => ['x0','y0','x1','y1'].forEach(k => r[k] = Math.round(r[k]*100)/100);
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
+  view.ox = e.offsetX - (e.offsetX - view.ox)*f; view.oy = e.offsetY - (e.offsetY - view.oy)*f; view.s = s; draw();
+}, {passive:false});
+addEventListener('keydown', e => {
+  const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.shiftKey ? redo() : undo(); e.preventDefault(); return; }
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { redo(); e.preventDefault(); return; }
+  if (typing || mode !== '2d') return;
+  if (e.code === 'Space') { space = true; cv.style.cursor = 'grab'; e.preventDefault(); }
+  if (e.key === 'Delete' || e.key === 'Backspace') deleteSel();
+  if (e.key === 'Escape') { selId = null; refreshUI(); draw(); }
+  if (e.key === 'Enter' && selId) { $('iNo').focus(); $('iNo').select(); e.preventDefault(); }
+  if (e.key === 'b') setTool('draw'); if (e.key === 'h') setTool('pan'); if (e.key === 'f') fit();
+});
+addEventListener('keyup', e => { if (e.code === 'Space') { space = false; setTool(tool); } });
+addEventListener('resize', () => { resize(); view3d.resize(); });
+
+// ---------- export / import ----------
+$('bExport').onclick = () => {
+  const blob = new Blob([JSON.stringify({app:'waypoint', version:1, floors, rooms}, null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `waypoint-rooms-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+$('bImport').onclick = () => $('fImport').click();
+$('fImport').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const d = JSON.parse(await file.text()); if (!Array.isArray(d.rooms)) throw 0;
+    const ids = new Set(floors.map(f => f.id)), orphans = d.rooms.filter(r => !ids.has(r.floor)).length;
+    if (!confirm(`Replace the current ${rooms.length} rooms with ${d.rooms.length} rooms from ${file.name}?` +
+      (orphans ? `\n\n${orphans} of them belong to floors that don't exist here and will be hidden until a floor with the same id is added.` : ''))) return;
+    snapshot(); rooms = d.rooms; afterChange();
+  } catch { alert('That file is not a Waypoint rooms export.'); }
+};
+
+// ---------- floor manager ----------
+let draft = [], uploadRow = -1;
+const slug = t => (t.trim().replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 30) || 'floor');
+function openFloors(){ draft = structuredClone(floors); $('fErr').textContent = ''; renderFloorRows(); $('dlgFloors').showModal(); }
+function renderFloorRows(){
+  const tb = $('fRows'); tb.innerHTML = '';
+  if (!draft.length) tb.innerHTML = '<tr><td colspan="7" class="empty" style="padding:12px 6px">No floors yet — click “+ Add floor”.</td></tr>';
+  draft.forEach((f, i) => {
+    const tr = document.createElement('tr'), [x0,y0,x1,y1] = f.extent;
+    tr.innerHTML = `<td><button class="up" title="Upload plan image" style="padding:0;border:0;background:none">${f.plan ? '<img alt="">' : '<span style="display:inline-block;padding:8px 6px;border:1px dashed var(--line);border-radius:4px;font-size:12px">Upload</span>'}</button></td>
+      <td><input class="nm" maxlength="60"></td><td><input class="n el" type="number" step="0.1"></td>
+      <td><input class="n w" type="number" step="0.1" min="1"></td><td><input class="n x" type="number" step="0.1"></td><td><input class="n y" type="number" step="0.1"></td>
+      <td><button class="del" title="Delete floor">🗑</button></td>`;
+    if (f.plan) tr.querySelector('img').src = planUrl(f);
+    const nm = tr.querySelector('.nm'); nm.value = f.name;
+    if (f.demo) nm.insertAdjacentHTML('afterend', '<span class="tag">demo</span>');
+    tr.querySelector('.el').value = f.elev; tr.querySelector('.w').value = +(x1-x0).toFixed(2);
+    tr.querySelector('.x').value = x0; tr.querySelector('.y').value = y0;
+    nm.oninput = e => f.name = e.target.value;
+    tr.querySelector('.el').oninput = e => f.elev = +e.target.value;
+    tr.querySelector('.w').oninput = e => { const w = +e.target.value; if (w > 0) { const k = w/(f.extent[2]-f.extent[0]); f.extent[2] = f.extent[0]+w; f.extent[3] = f.extent[1]+(f.extent[3]-f.extent[1])*k; } };
+    tr.querySelector('.x').oninput = e => { const w = f.extent[2]-f.extent[0]; f.extent[0] = +e.target.value; f.extent[2] = f.extent[0]+w; };
+    tr.querySelector('.y').oninput = e => { const h = f.extent[3]-f.extent[1]; f.extent[1] = +e.target.value; f.extent[3] = f.extent[1]+h; };
+    tr.querySelector('.up').onclick = () => { uploadRow = i; $('fPlanFile').click(); };
+    tr.querySelector('.del').onclick = () => {
+      const n = rooms.filter(r => r.floor === f.id).length;
+      if (confirm(`Delete floor “${f.name}”${n ? ` and its ${n} rooms` : ''}? This happens when you click “Save floors”.`)) { draft.splice(i, 1); renderFloorRows(); }
+    };
+    tb.appendChild(tr);
+  });
+}
+$('fAdd').onclick = () => {
+  const last = draft[draft.length-1], ids = new Set(draft.map(f => f.id));
+  const name = `Floor ${draft.length + 1}`; let id = slug(name), k = 2; while (ids.has(id)) id = slug(name) + '-' + k++;
+  draft.push({id, name, elev: last ? +(last.elev + 4).toFixed(2) : 0, extent: last ? [...last.extent] : [0, 0, 60, 40], plan: ''});
+  renderFloorRows();
+};
+$('fPlanFile').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ''; const f = draft[uploadRow]; if (!file || !f) return;
+  $('fErr').textContent = 'Uploading…';
+  try {
+    const r = await fetch('api/plans/' + encodeURIComponent(f.id), {method:'POST', body:file});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+    f.plan = j.plan;
+    const im = new Image(); await new Promise((ok, bad) => { im.onload = ok; im.onerror = bad; im.src = planUrl(f); });
+    f.extent[3] = f.extent[1] + (f.extent[2] - f.extent[0]) * im.naturalHeight / im.naturalWidth;   // keep the image's shape
+    $('fErr').textContent = ''; renderFloorRows();
+  } catch (err) { $('fErr').textContent = 'Upload failed: ' + (err.message || err); }
+};
+$('fSave').onclick = async () => {
+  if (draft.some(f => !f.name.trim())) return $('fErr').textContent = 'Every floor needs a name.';
+  const keep = new Set(draft.map(f => f.id)), dropped = rooms.filter(r => !keep.has(r.floor));
+  try {
+    const r = await fetch('api/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:draft})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+  } catch (err) { return $('fErr').textContent = 'Save failed: ' + (err.message || err); }
+  const curId = floors[cur]?.id;
+  floors = draft; sortFloors();
+  if (dropped.length) { snapshot(); rooms = rooms.filter(r => keep.has(r.floor)); scheduleSave(); }
+  $('dlgFloors').close();
+  cur = Math.max(0, floors.findIndex(f => f.id === curId));
+  if (mode === '3d') await setMode('3d'); else setFloor(cur);
+};
+$('fCancel').onclick = $('fClose').onclick = () => $('dlgFloors').close();
+$('bFloors').onclick = openFloors; $('bFirstFloor').onclick = openFloors;
+
+function updateChrome(){
+  const none = !floors.length;
+  $('emptyMain').style.display = none ? 'flex' : 'none';
+  $('m3d').disabled = none;
+  $('banner').style.display = floors.some(f => f.demo) ? 'block' : 'none';
+}
+
+// ---------- 3D view ----------
+const view3d = (() => {
+  let T, renderer, scene, camera, controls, gridHelper, groups = [], meshes = [], active = -1, started = false, fly = null, hover = null;
+  let CX = 0, CZ = 0, SPAN = 100;          // centre and size of all floors, metres
+  const H = 4.0, el = $('three'), tip = $('tip');
+  async function init(){
+    T = await import('three');
+    const {OrbitControls} = await import('three/addons/controls/OrbitControls.js');
+    renderer = new T.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    el.appendChild(renderer.domElement);
+    scene = new T.Scene(); scene.background = new T.Color('#0f1115');
+    camera = new T.PerspectiveCamera(45, 1, 0.5, 5000);
+    controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+    scene.add(new T.HemisphereLight(0xffffff,0x334455,1.1));
+    const sun = new T.DirectionalLight(0xffffff,1.1); sun.position.set(-80,150,60); scene.add(sun);
+    const dom = renderer.domElement; let down = null;
+    dom.addEventListener('pointermove', e => {
+      const m = pick(e);
+      if (hover && hover !== m) hover.material.opacity = hover.userData.op;
+      hover = m;
+      if (m) {
+        m.material.opacity = .85; const r = m.userData.r;
+        tip.innerHTML = `<b></b><div class="m"></div><div class="m">Double-click to edit</div>`;
+        tip.querySelector('b').textContent = r.no + (r.name ? ' · ' + r.name : '');
+        tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${((r.x1-r.x0)*(r.y1-r.y0)).toFixed(1)} m²`;
+        tip.style.display = 'block'; tip.style.left = Math.min(e.clientX+14, innerWidth-260)+'px'; tip.style.top = (e.clientY+14)+'px';
+        dom.style.cursor = 'pointer';
+      } else { tip.style.display = 'none'; dom.style.cursor = ''; }
+    });
+    dom.addEventListener('pointerleave', () => tip.style.display = 'none');
+    dom.addEventListener('pointerdown', e => down = [e.clientX,e.clientY]);
+    dom.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX-down[0],e.clientY-down[1]) < 4) { const m = pick(e); if (m) focus(m.userData.r); } });
+    dom.addEventListener('dblclick', async e => { const m = pick(e); if (m) { const r = m.userData.r; await setMode('2d'); setFloor(floors.findIndex(f => f.id === r.floor)); setTimeout(() => { selectRoom(r.id,true); centerOn(r); }, 60); } });
+    for (const id of ['explode','hScale','showPlan','showLabels']) $(id).addEventListener('input', layout);
+    started = true; resize();
+    (function loop(){ requestAnimationFrame(loop); if (mode !== '3d') return;
+      if (fly) { fly.t = Math.min(1, fly.t+.04); const k = 1-Math.pow(1-fly.t,3);
+        controls.target.lerpVectors(fly.a, fly.b, k); camera.position.lerpVectors(fly.pa, fly.pb, k); if (fly.t >= 1) fly = null; }
+      controls.update(); renderer.render(scene, camera); })();
+  }
+  function disposeTree(o){ o.traverse(c => { c.geometry?.dispose(); if (c.material) { c.material.map?.dispose(); c.material.dispose(); } }); }
+  function buildFloors(){
+    groups.forEach(g => { disposeTree(g); scene.remove(g); }); groups = [];
+    if (gridHelper) { disposeTree(gridHelper); scene.remove(gridHelper); }
+    const xs = floors.flatMap(f => [f.extent[0], f.extent[2]]), ys = floors.flatMap(f => [f.extent[1], f.extent[3]]);
+    CX = (Math.min(...xs)+Math.max(...xs))/2; CZ = (Math.min(...ys)+Math.max(...ys))/2;
+    SPAN = Math.max(20, Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys));
+    const gs = Math.ceil(SPAN*2/10)*10; gridHelper = new T.GridHelper(gs, gs/10, 0x2a2f3a, 0x1c2028); scene.add(gridHelper);
+    const loader = new T.TextureLoader();
+    floors.forEach(f => {
+      const g = new T.Group(), [x0,y0,x1,y1] = f.extent;
+      const mat = new T.MeshBasicMaterial({color:0xffffff, transparent:true, side:T.DoubleSide, depthWrite:false});
+      if (f.plan) { const tex = loader.load(planUrl(f), () => mat.needsUpdate = true); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; mat.map = tex; }
+      const plane = new T.Mesh(new T.PlaneGeometry(x1-x0,y1-y0), mat);
+      plane.rotation.x = -Math.PI/2; plane.position.set((x0+x1)/2-CX, 0.02, (y0+y1)/2-CZ);
+      g.add(plane); g.userData = {plane, boxes:new T.Group(), labels:new T.Group()};
+      g.add(g.userData.boxes, g.userData.labels); scene.add(g); groups.push(g);
+    });
+  }
+  function labelSprite(r){
+    const c = document.createElement('canvas'), x = c.getContext('2d'), fs = 44;
+    const t1 = r.no || '?', t2 = r.name || '';
+    x.font = `700 ${fs}px system-ui`; let w = x.measureText(t1).width;
+    x.font = `400 ${fs*.7}px system-ui`; w = Math.max(w, x.measureText(t2).width);
+    c.width = Math.ceil(w + 24); c.height = t2 ? fs*2.1 : fs*1.3;
+    x.fillStyle = 'rgba(15,17,21,.82)'; x.beginPath(); x.roundRect(0,0,c.width,c.height,12); x.fill();
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#fff';
+    x.font = `700 ${fs}px system-ui`; x.fillText(t1, c.width/2, t2 ? fs*.65 : c.height/2);
+    if (t2) { x.font = `400 ${fs*.7}px system-ui`; x.fillStyle = '#c9d1e0'; x.fillText(t2, c.width/2, fs*1.5); }
+    const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
+    const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
+    const k = 0.035 * SPAN/130; sp.scale.set(c.width*k, c.height*k, 1); sp.renderOrder = 5; return sp;
+  }
+  function rebuild(){
+    buildFloors(); meshes = [];
+    for (const r of rooms) {
+      const fi = floors.findIndex(f => f.id === r.floor); if (fi < 0) continue;
+      const g = groups[fi], w = r.x1-r.x0, d = r.y1-r.y0;
+      const geo = new T.BoxGeometry(w, 1, d); geo.translate(0, .5, 0);
+      const col = new T.Color(r.no ? '#4f8cff' : '#ff5d73');
+      const m = new T.Mesh(geo, new T.MeshStandardMaterial({color:col, transparent:true, opacity:.45, depthWrite:false}));
+      m.add(new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color:col, transparent:true})));
+      m.position.set((r.x0+r.x1)/2-CX, 0, (r.y0+r.y1)/2-CZ); m.userData = {r, fi, op:.45};
+      g.userData.boxes.add(m); meshes.push(m);
+      const sp = labelSprite(r); sp.position.set(m.position.x, 0, m.position.z); g.userData.labels.add(sp);
+    }
+    layout();
+  }
+  function layout(){
+    const ex = +$('explode').value, hs = +$('hScale').value;
+    groups.forEach((g,i) => {
+      const on = active < 0 || active === i;
+      g.visible = active < 0 || i <= active;
+      g.position.y = floors[i].elev * ex;
+      g.userData.plane.material.opacity = $('showPlan').checked ? (on ? .9 : .1) : 0;
+      g.userData.boxes.children.forEach(m => { m.scale.y = H*hs; m.userData.op = on ? .45 : .06; m.material.opacity = m.userData.op; m.children[0].material.opacity = on ? 1 : .1; });
+      g.userData.labels.visible = $('showLabels').checked && active === i;   // labels only when one floor is isolated
+      g.userData.labels.children.forEach(s => s.position.y = H*hs + 1.5);
+    });
+  }
+  function pick(e){
+    const rc = el.getBoundingClientRect(), v = new T.Vector2((e.clientX-rc.left)/rc.width*2-1, -(e.clientY-rc.top)/rc.height*2+1);
+    const ray = new T.Raycaster(); ray.setFromCamera(v, camera);
+    return ray.intersectObjects(meshes.filter(m => active < 0 || m.userData.fi === active), false)[0]?.object || null;
+  }
+  function flyTo(target, dist){ const dir = camera.position.clone().sub(controls.target).normalize();
+    fly = {t:0, a:controls.target.clone(), b:target, pa:camera.position.clone(), pb:target.clone().add(dir.multiplyScalar(dist))}; }
+  const midY = () => floors.length ? (floors[0].elev + floors[floors.length-1].elev)/2 * +$('explode').value : 0;
+  function setFloorI(i){ active = i; layout(); flyTo(new T.Vector3(0, i < 0 ? midY() : floors[i].elev * +$('explode').value, 0), SPAN * (i < 0 ? 1.8 : 1.2)); }
+  function focus(r){
+    const fi = floors.findIndex(f => f.id === r.floor);
+    if (active !== fi && active >= 0) { cur = fi; buildTabs(); refreshUI(); active = fi; layout(); }
+    const m = meshes.find(m => m.userData.r.id === r.id); if (!m) return;
+    const b = new T.Box3().setFromObject(m); flyTo(b.getCenter(new T.Vector3()), Math.max(35, b.getSize(new T.Vector3()).length()*2.5));
+  }
+  function resize(){ if (!started) return; const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w,h); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+  let framed = false;
+  return {
+    async show(){
+      if (!started) await init(); el.style.display = 'block'; resize(); rebuild();
+      if (!framed) { framed = true; controls.target.set(0, midY(), 0); camera.position.set(-SPAN*1.1, midY() + SPAN*1.25, SPAN*1.5); }
+      setFloorI(cur);
+    },
+    hide(){ el.style.display = 'none'; tip.style.display = 'none'; },
+    setFloor: i => started && setFloorI(i), focus, resize,
+  };
+})();
+
+// ---------- modes ----------
+async function setMode(m){
+  mode = m; document.body.classList.toggle('mode3d', m === '3d');
+  $('mDraw').classList.toggle('on', m === '2d'); $('m3d').classList.toggle('on', m === '3d');
+  if (m === '3d') { cv.style.display = 'none'; $('emptyMain').style.display = 'none'; selId = null; buildTabs(); refreshUI(); await view3d.show(); }
+  else { view3d.hide(); cv.style.display = 'block'; if (cur < 0) cur = 0; buildTabs(); refreshUI(); updateChrome(); resize(); await loadImg(cur); fit(); }
+}
+$('mDraw').onclick = () => setMode('2d');
+$('m3d').onclick = () => setMode('3d');
+
+buildTabs(); refreshUI(); updateChrome(); resize(); setTool('draw');
+fetch('api/health').then(r => r.json()).then(j => $('ver').textContent = j.version).catch(() => {});
+setStatus(serverOK ? `Saved · ${rooms.length} rooms` : 'Cannot reach the Waypoint server — changes will not be saved', !serverOK);
+await loadImg(0); fit();
+</script>
+</body>
+</html>

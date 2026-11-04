@@ -1,0 +1,18 @@
+# Paste into TrueNAS: Apps → Discover Apps → ⋮ → Install via YAML
+# Build the image first on the NAS (docs/TRUENAS.md step 3):
+#   sudo docker build -t waypoint:local /mnt/tank/apps/waypoint/src
+# Then change the host path below to your data dataset.
+services:
+  waypoint:
+    image: waypoint:local
+    pull_policy: never          # built locally; there is no registry to pull from
+    container_name: waypoint
+    restart: unless-stopped
+    user: "568:568"
+    ports:
+      - "8080:8080"
+    environment:
+      WAYPOINT_SEED_DEMO: "true"
+      TZ: "UTC"
+    volumes:
+      - /mnt/tank/apps/waypoint/data:/data
