@@ -17,7 +17,7 @@ It runs as **one Docker container** (Python standard library plus static files, 
 ## Quick start (any Docker host)
 
 ```bash
-git clone https://github.com/<your-user>/waypoint.git
+git clone https://github.com/Asura-T/waypoint.git
 cd waypoint
 cp .env.example .env          # set WAYPOINT_DATA_PATH to a folder that will hold your maps
 mkdir -p data && sudo chown 568:568 data    # only if you keep WAYPOINT_DATA_PATH=./data

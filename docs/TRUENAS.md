@@ -49,13 +49,13 @@ Open **System → Shell**, or connect over SSH as an admin user. Docker commands
 
 ```bash
 cd /mnt/tank/apps/waypoint
-sudo git clone https://github.com/<your-user>/waypoint.git src
+sudo git clone https://github.com/Asura-T/waypoint.git src
 ```
 
 - **Private repository:** create a GitHub *fine-grained personal access token* with read-only "Contents" access to this one repo. Use it as the password when git asks. You can also add an SSH deploy key to the repo.
 - **If `git` is not available** on your TrueNAS, run it from a throw-away container:
   ```bash
-  sudo docker run --rm -it -v /mnt/tank/apps/waypoint:/w -w /w alpine/git clone https://github.com/<your-user>/waypoint.git src
+  sudo docker run --rm -it -v /mnt/tank/apps/waypoint:/w -w /w alpine/git clone https://github.com/Asura-T/waypoint.git src
   ```
   For later updates, use the same command with `-w /w/src` and `pull` in place of `clone …`.
 
