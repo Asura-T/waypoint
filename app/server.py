@@ -184,6 +184,8 @@ def clean_room(r):
         out['pts'] = pts
     if r.get('demo'):
         out['demo'] = True
+    if r.get('auto'):                      # drawn automatically from the PDF, not yet checked by a person
+        out['auto'] = True
     return out
 
 

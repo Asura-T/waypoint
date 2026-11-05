@@ -38,6 +38,11 @@
   #zoombar{position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:3}
   #zoombar button{background:rgba(23,26,33,.96)}
   #editCard{position:absolute;display:none;width:290px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  .autonote{background:#3a2a10;border:1px solid #8a6420;color:#ffd79a;border-radius:8px;padding:7px 9px;font-size:12px;margin:0 22px 10px 0;line-height:1.5}
+  .autonote button{margin-top:5px;padding:3px 9px;font-size:12px}
+  .room .tag{margin-left:auto}
+  #autoBar{display:none;margin-top:6px;font-size:12px;color:#ffd79a;gap:6px;align-items:center;flex-wrap:wrap}
+  #autoBar button{padding:3px 8px;font-size:12px}
   #editCard .x{position:absolute;right:6px;top:6px;padding:2px 7px;background:transparent;border-color:transparent}
   #editCard .types{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
   #editCard .types button{font-size:12px;padding:4px 6px;text-align:left}
@@ -181,7 +186,8 @@
       <label>Show labels <input id="showLabels" type="checkbox" checked></label>
     </div>
   </div>
-  <div class="sec" style="padding-bottom:8px"><h2 id="listTitle">Boxes</h2><input id="listSearch" placeholder="Search number or name…" autocomplete="off"></div>
+  <div class="sec" style="padding-bottom:8px"><h2 id="listTitle">Boxes</h2><input id="listSearch" placeholder="Search number or name…" autocomplete="off">
+    <div id="autoBar"><span id="autoCount"></span><button id="bAutoNext">Check next ▸</button><button id="bAutoAll" title="Mark every auto-drawn box on this floor as checked">All look right</button></div></div>
   <div id="list"></div>
   <details class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
     <summary>Keyboard &amp; tips</summary>
@@ -202,6 +208,8 @@
   <div id="editCard">
     <button id="ecClose" class="x" title="Close (Esc)">✕</button>
     <div id="editForm" style="display:none">
+      <div id="autoNote" class="autonote" style="display:none">Drawn automatically from the PDF. Check the shape, type and name, then
+        <button id="bAutoOk" class="primary">✓ Looks right</button></div>
       <div class="field"><span>Type</span><div class="types" id="iType"></div></div>
       <label class="field"><span id="lNo">Room No. (required)</span><input id="iNo" autocomplete="off" placeholder="e.g. G01"></label>
       <label class="field"><span>Name (optional)</span><input id="iName" autocomplete="off" placeholder="e.g. Meeting room"></label>
@@ -479,7 +487,10 @@ function setFloor(i){
 // ---------- side panel ----------
 function refreshUI(){
   const q = $('listSearch').value.trim().toLowerCase();
-  const fr = (cur < 0 ? rooms : floorRooms(cur)).filter(r => !q || `${r.no} ${r.name} ${TYPES[typeOf(r)].label}`.toLowerCase().includes(q));
+  const fr = (cur < 0 ? rooms : floorRooms(cur)).filter(r => !q || `${r.no} ${r.name} ${TYPES[typeOf(r)].label} ${r.auto ? 'auto' : ''}`.toLowerCase().includes(q));
+  const autos = floorRooms(cur).filter(r => r.auto);
+  $('autoBar').style.display = autos.length ? 'flex' : 'none';
+  $('autoCount').textContent = `${autos.length} auto-drawn box${autos.length === 1 ? '' : 'es'} to check`;
   const nw = cur < 0 ? walls.length : floorWalls(cur).length, wtxt = nw ? ` · ${nw} wall${nw > 1 ? 's' : ''}` : '';
   $('listTitle').textContent = (cur < 0 ? `All boxes (${fr.length})` : floors[cur] ? `Boxes on ${floors[cur].name} (${fr.length})` : 'Boxes') + wtxt;
   const order = r => TYPE_KEYS.indexOf(typeOf(r));
@@ -493,6 +504,7 @@ function refreshUI(){
     const b = d.querySelector('b'); b.textContent = boxTitle(r); if (t === 'room' && !r.no) b.className = 'nn';
     const extra = t === 'room' ? r.name : (r.no && r.name ? r.name : (r.no || r.name ? TYPES[t].label : ''));
     d.querySelector('.nm').textContent = (cur < 0 ? floorName(r.floor) + ' · ' : '') + (extra || '');
+    if (r.auto) d.insertAdjacentHTML('beforeend', '<span class="tag">auto</span>');
     d.onclick = () => { if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
     $('list').appendChild(d);
   });
@@ -515,6 +527,7 @@ function refreshUI(){
   if (r) {
     const t = typeOf(r);
     typeButtons($('iType'), t, setSelType);
+    $('autoNote').style.display = r.auto ? '' : 'none';
     $('lNo').textContent = t === 'room' ? 'Room No. (required)' : 'Number (optional)';
     $('iNo').placeholder = t === 'room' ? 'e.g. G01' : t === 'elevator' ? 'e.g. L1' : t === 'stair' ? 'e.g. S1' : '';
     $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', garden:'e.g. Courtyard', balcony:'e.g. East balcony', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
@@ -560,6 +573,20 @@ for (const [inp, ax] of [['iW','x'],['iD','y']]) {
   });
   $(inp).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.target.blur(); e.preventDefault(); } });
 }
+// auto-drawn boxes: confirm one, jump to the next, or confirm the whole floor
+function confirmAuto(r){ if (!r || !r.auto) return; snapshot(); delete r.auto; afterChange(); }
+$('bAutoOk').onclick = () => { confirmAuto(byId(selId)); nextAuto(); };
+function nextAuto(){
+  const r = floorRooms(cur).find(o => o.auto);
+  if (!r) { finishEdit(); return toast('Every auto-drawn box on this floor is checked.'); }
+  selectRoom(r.id); centerOn(r);
+}
+$('bAutoNext').onclick = nextAuto;
+$('bAutoAll').onclick = () => {
+  const list = floorRooms(cur).filter(r => r.auto); if (!list.length) return;
+  if (!confirm(`Mark all ${list.length} auto-drawn boxes on ${floors[cur].name} as checked?`)) return;
+  snapshot(); list.forEach(r => delete r.auto); afterChange();
+};
 function finishEdit(){ document.activeElement.blur(); selId = null; selWall = null; refreshUI(); draw(); }
 $('bDone').onclick = finishEdit; $('wDone').onclick = finishEdit;
 $('bDel').onclick = () => deleteSel(); $('wDel').onclick = () => deleteSel();
@@ -743,6 +770,10 @@ function draw(){
   }
   if (!exporting) drawCorners();
   if (drag && drag.snapPt) { const [p,q] = toScr(...drag.snapPt); ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p,q,8,0,7); ctx.stroke(); }
+  // auto-drawn boxes still to be checked: dashed amber outline
+  ctx.setLineDash([5,4]); ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffb020';
+  for (const r of list) if (r.auto && r.id !== selId) { ctx.beginPath(); pathOf(r); ctx.stroke(); }
+  ctx.setLineDash([]);
   // selection on top
   const sr = selId && list.find(r => r.id === selId);
   if (sr) {
