@@ -79,6 +79,13 @@
   #boxBar button.on{background:var(--accent);color:#fff}
   #boxBar .sep{height:22px;margin:0 2px}
   .room .ic{width:10px;height:10px;border-radius:3px;flex:none;align-self:center}
+  .menu{position:relative}
+  .pop{display:none;position:fixed;min-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .pop.open{display:grid}
+  .pop button{display:block;text-align:left;border:0;background:transparent;padding:7px 10px;white-space:normal}
+  .pop button:hover{background:#2a3040}
+  .pop small{display:block;color:var(--muted);font-size:11px}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;z-index:30;display:none;font-size:13px}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   @media (max-width:760px){aside{top:auto;height:40%;width:auto;right:0;border-right:0;border-top:1px solid var(--line)}main{left:0;bottom:40%}}
 </style>
@@ -93,10 +100,9 @@
   <div class="sep only2d"></div>
   <div class="grp only2d">
     <button id="tDraw" class="on" title="Draw boxes (B)">▭ Box</button>
+    <button id="tWall" title="Draw walls (W): drag from one end to the other">▬ Wall</button>
     <button id="tPan" title="Pan (H) — or hold Space / right-drag">✋ Pan</button>
   </div>
-  <div class="sep only2d"></div>
-  <div class="grp only2d" id="typePick" title="What new boxes are drawn as (keys 1–5)"></div>
   <div class="sep only2d"></div>
   <div class="grp only2d">
     <button id="bFit" title="Fit floor (F)">Fit</button>
@@ -104,11 +110,21 @@
     <button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
   </div>
   <div class="sep"></div>
-  <div class="grp"><button id="bFloors">Floors…</button><button id="bExport">Export</button><button id="bImport">Import</button><input id="fImport" type="file" accept=".json,application/json" hidden></div>
+  <div class="grp"><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
+      <button data-x="zip"><b>Full backup</b> (.zip)<small>floors, rooms, walls and plan images</small></button>
+      <button data-x="json"><b>Rooms &amp; walls</b> (.json)<small>without plan images</small></button>
+      <button data-x="png2d"><b>2D floor image</b> (.png)<small>the floor you are looking at</small></button>
+      <button data-x="png3d"><b>3D view image</b> (.png)<small>what the 3D camera shows</small></button>
+      <button data-x="glb"><b>3D model</b> (.glb)<small>open in Blender, Windows 3D Viewer…</small></button>
+    </div></div><button id="bImport" title="Restore a full backup (.zip) or load rooms (.json)">Import</button><input id="fImport" type="file" accept=".zip,.json,application/zip,application/json" hidden></div>
   <div id="status">Loading…</div>
 </header>
 
 <aside>
+  <div class="sec only2d">
+    <h2>New boxes are</h2>
+    <div class="types" id="typePick" title="What new boxes are drawn as (keys 1–6)"></div>
+  </div>
   <div class="sec only2d" id="editSec">
     <h2>Selected box</h2>
     <div id="editEmpty" class="empty">Pick a type at the top, then drag on the plan to draw a box.</div>
@@ -119,6 +135,11 @@
       <div class="field"><span>Size (m)</span><div class="size"><input id="iW" type="number" step="0.1" min="0.3" title="Width"><span>×</span><input id="iD" type="number" step="0.1" min="0.3" title="Depth"></div></div>
       <div class="warn" id="warn"></div>
       <div class="grp"><button id="bDone">Done ⏎</button><button id="bDel" class="danger">🗑 Delete</button></div>
+    </div>
+    <div id="wallForm" style="display:none">
+      <div class="field"><span>Wall</span><div id="wLen" class="empty"></div></div>
+      <label class="field"><span>Thickness (m)</span><input id="wT" type="number" step="0.05" min="0.02" max="3"></label>
+      <div class="grp"><button id="wDone">Done</button><button id="wDel" class="danger">🗑 Delete wall</button></div>
     </div>
   </div>
   <div class="sec only3d" style="flex-direction:column" id="ctl3dSec">
@@ -134,7 +155,7 @@
   <div id="list"></div>
   <div class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
     Drag to draw (also over other boxes) · click a box to select it, then drag it to move · drag its corners/edges to resize (edges snap to nearby boxes, hold <kbd>Alt</kbd> to stop snapping) ·
-    <kbd>Esc</kbd> while dragging cancels · <kbd>Del</kbd> deletes · <kbd>1</kbd>–<kbd>5</kbd> set type ·
+    <kbd>Esc</kbd> while dragging cancels · <kbd>Del</kbd> deletes · <kbd>1</kbd>–<kbd>6</kbd> set type · <kbd>W</kbd> wall tool ·
     <kbd>Space</kbd>+drag or right-drag to pan · scroll to zoom.<br>
     Walkways that touch join into one path. <b>Empty</b> cuts a hole in the floor so you see the floor below.
   </div>
@@ -147,6 +168,7 @@
   <div id="three"></div>
 </main>
 <div id="tip"></div>
+<div id="toast"></div>
 <div id="banner">Demo data — replace it with your own floors under “Floors…”</div>
 
 <dialog id="dlgFloors">
@@ -171,11 +193,12 @@
 // ---------- data ----------
 let floors = [];             // {id, name, elev, extent:[x0,y0,x1,y1] (m), plan, demo?}
 let rooms = [];              // {id, floor (floor id), type, no, name, x0,y0,x1,y1}  (metres, shared grid for all floors)
+let walls = [];              // {id, floor, x0,y0,x1,y1, t}  straight wall segments, t = thickness (m)
 let serverOK = true;
 try {
   const r = await fetch('api/map');
   if (!r.ok) throw 0;
-  ({floors, rooms} = await r.json());
+  ({floors, rooms, walls = []} = await r.json());
 } catch { serverOK = false; }
 const sortFloors = () => floors.sort((a,b) => a.elev - b.elev);
 sortFloors();
@@ -183,18 +206,21 @@ const planUrl = f => f.plan ? 'files/' + f.plan : '';
 
 let cur = 0;                 // floor index
 let mode = '2d';
-let selId = null;
+let selId = null;            // selected box id
+let selWall = null;          // selected wall id (only one of the two is set)
 const $ = id => document.getElementById(id);
 const floorRooms = fi => floors[fi] ? rooms.filter(r => r.floor === floors[fi].id) : [];
 const floorName = id => floors.find(f => f.id === id)?.name ?? id;
 const byId = id => rooms.find(r => r.id === id);
+const wallById = id => walls.find(w => w.id === id);
+const floorWalls = fi => floors[fi] ? walls.filter(w => w.floor === floors[fi].id) : [];
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ---------- saving ----------
 let saveTimer = null;
 function setStatus(t, bad=false){ $('status').textContent = t; $('status').classList.toggle('bad', bad); }
 function scheduleSave(){
-  const payload = {version:1, rooms};
+  const payload = {version:1, rooms, walls};
   if (!serverOK) { setStatus('Not saved — cannot reach the Waypoint server', true); return; }
   setStatus('Saving…');
   clearTimeout(saveTimer);
@@ -202,21 +228,24 @@ function scheduleSave(){
     try {
       const r = await fetch('api/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
       if (!r.ok) throw 0;
-      setStatus(`Saved · ${rooms.length} boxes`);
+      setStatus(`Saved · ${rooms.length} boxes · ${walls.length} walls`);
     } catch { setStatus('Save failed — check the server, then make any change to retry', true); }
   }, 500);
 }
 
 // ---------- undo ----------
 const undoStack = [], redoStack = [];
-function snapshot(){ undoStack.push(JSON.stringify(rooms)); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; }
-function undo(){ if (!undoStack.length) return; redoStack.push(JSON.stringify(rooms)); rooms = JSON.parse(undoStack.pop()); afterChange(); }
-function redo(){ if (!redoStack.length) return; undoStack.push(JSON.stringify(rooms)); rooms = JSON.parse(redoStack.pop()); afterChange(); }
-function afterChange(){ if (selId && !byId(selId)) selId = null; scheduleSave(); refreshUI(); draw(); }
+const state = () => JSON.stringify({rooms, walls});
+const restore = j => ({rooms, walls} = JSON.parse(j));
+function snapshot(){ undoStack.push(state()); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; }
+function undo(){ if (!undoStack.length) return; redoStack.push(state()); restore(undoStack.pop()); afterChange(); }
+function redo(){ if (!redoStack.length) return; undoStack.push(state()); restore(redoStack.pop()); afterChange(); }
+function afterChange(){ if (selId && !byId(selId)) selId = null; if (selWall && !wallById(selWall)) selWall = null; scheduleSave(); refreshUI(); draw(); }
 
 // ---------- box types ----------
 const TYPES = {
   room:     {label:'Room',     color:'#4f8cff', glyph:''},
+  bathroom: {label:'Bathroom', color:'#38bdf8', glyph:'WC'},
   walkway:  {label:'Walkway',  color:'#2ec4b6', glyph:'⇄'},
   stair:    {label:'Stair',    color:'#ff7a45', glyph:'▤'},
   elevator: {label:'Elevator', color:'#a06bff', glyph:'⇅'},
@@ -297,7 +326,7 @@ function buildTabs(){
   });
 }
 function setFloor(i){
-  cur = i; selId = null;
+  cur = i; selId = null; selWall = null;
   buildTabs(); refreshUI(); updateChrome();
   if (mode === '2d') { Promise.all([loadImg(cur), loadImg(cur-1)]).then(() => { fit(); draw(); }); }
   else view3d.setFloor(i);
@@ -306,7 +335,8 @@ function setFloor(i){
 // ---------- side panel ----------
 function refreshUI(){
   const fr = cur < 0 ? rooms : floorRooms(cur);
-  $('listTitle').textContent = cur < 0 ? `All boxes (${fr.length})` : floors[cur] ? `Boxes on ${floors[cur].name} (${fr.length})` : 'Boxes';
+  const nw = cur < 0 ? walls.length : floorWalls(cur).length, wtxt = nw ? ` · ${nw} wall${nw > 1 ? 's' : ''}` : '';
+  $('listTitle').textContent = (cur < 0 ? `All boxes (${fr.length})` : floors[cur] ? `Boxes on ${floors[cur].name} (${fr.length})` : 'Boxes') + wtxt;
   const order = r => TYPE_KEYS.indexOf(typeOf(r));
   const sorted = [...fr].sort((a,b) => order(a) - order(b) || (a.floor+a.no+a.name).localeCompare(b.floor+b.no+b.name, undefined, {numeric:true}));
   $('list').innerHTML = sorted.length ? '' : '<div class="empty" style="padding:8px">Nothing drawn yet.</div>';
@@ -321,15 +351,20 @@ function refreshUI(){
     d.onclick = () => { if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
     $('list').appendChild(d);
   });
-  const r = selId && byId(selId);
-  $('editEmpty').style.display = r ? 'none' : '';
+  const r = selId && byId(selId), w = selWall && wallById(selWall);
+  $('editEmpty').style.display = r || w ? 'none' : '';
   $('editForm').style.display = r ? '' : 'none';
+  $('wallForm').style.display = w ? '' : 'none';
+  if (w) {
+    $('wLen').textContent = `${Math.hypot(w.x1-w.x0, w.y1-w.y0).toFixed(2)} m long`;
+    if (document.activeElement !== $('wT')) $('wT').value = w.t;
+  }
   if (r) {
     const t = typeOf(r);
     typeButtons($('iType'), t, setSelType);
     $('lNo').textContent = t === 'room' ? 'Room No. (required)' : 'Number (optional)';
     $('iNo').placeholder = t === 'room' ? 'e.g. G01' : t === 'elevator' ? 'e.g. L1' : t === 'stair' ? 'e.g. S1' : '';
-    $('iName').placeholder = {room:'e.g. Meeting room', walkway:'e.g. Main corridor', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
+    $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
     if (document.activeElement !== $('iNo')) $('iNo').value = r.no;
     if (document.activeElement !== $('iName')) $('iName').value = r.name;
     if (document.activeElement !== $('iW')) $('iW').value = +(r.x1-r.x0).toFixed(2);
@@ -345,7 +380,7 @@ function validate(r){
   $('warn').textContent = w; $('iNo').classList.toggle('bad', !!w);
 }
 function selectRoom(id, focusNo=false){
-  selId = id; refreshUI(); draw();
+  selId = id; selWall = null; refreshUI(); draw();
   if (focusNo) { $('iNo').focus(); $('iNo').select(); }
   const el = $('list').querySelector('.sel'); if (el) el.scrollIntoView({block:'nearest'});
 }
@@ -371,13 +406,27 @@ for (const [inp, ax] of [['iW','x'],['iD','y']]) {
   });
   $(inp).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.target.blur(); e.preventDefault(); } });
 }
-function finishEdit(){ document.activeElement.blur(); selId = null; refreshUI(); draw(); }
-$('bDone').onclick = finishEdit;
-$('bDel').onclick = () => deleteSel();
-function deleteSel(){ if (!selId) return; snapshot(); rooms = rooms.filter(r => r.id !== selId); selId = null; afterChange(); }
+function finishEdit(){ document.activeElement.blur(); selId = null; selWall = null; refreshUI(); draw(); }
+$('bDone').onclick = finishEdit; $('wDone').onclick = finishEdit;
+$('bDel').onclick = () => deleteSel(); $('wDel').onclick = () => deleteSel();
+function deleteSel(){
+  if (selWall) { snapshot(); walls = walls.filter(w => w.id !== selWall); selWall = null; return afterChange(); }
+  if (!selId) return; snapshot(); rooms = rooms.filter(r => r.id !== selId); selId = null; afterChange();
+}
+function selectWall(id){ selWall = id; selId = null; refreshUI(); draw(); }
+let wallT = 0.2;                                         // thickness for new walls; follows the last one edited
+$('wT').addEventListener('focus', () => editSnap = false);
+$('wT').addEventListener('input', e => {
+  const w = wallById(selWall), v = +e.target.value; if (!w || !(v >= 0.02 && v <= 3)) return;
+  if (!editSnap) { snapshot(); editSnap = true; }
+  w.t = wallT = Math.round(v*100)/100; scheduleSave(); draw();
+});
+$('wT').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.target.blur(); e.preventDefault(); } });
 
 // ---------- 2D editor ----------
-const cv = $('cv'), ctx = cv.getContext('2d'), bar = $('boxBar');
+const cv = $('cv'), bar = $('boxBar');
+let ctx = cv.getContext('2d');   // swapped for an offscreen canvas while exporting a PNG
+let exporting = null;            // {W, H} during a PNG export
 const imgs = {};
 function loadImg(fi){
   const f = floors[fi], url = f && planUrl(f);
@@ -435,8 +484,8 @@ function label(r, sel){
   ctx.restore();
 }
 function draw(){
-  if (mode !== '2d' || cur < 0) { bar.style.display = 'none'; return; }
-  const W = cv.clientWidth, H = cv.clientHeight;
+  if ((mode !== '2d' && !exporting) || cur < 0) { bar.style.display = 'none'; return; }
+  const W = exporting ? exporting.W : cv.clientWidth, H = exporting ? exporting.H : cv.clientHeight;
   ctx.fillStyle = '#0f1115'; ctx.fillRect(0,0,W,H);
   const f = floors[cur]; if (!f) { bar.style.display = 'none'; return; }
   drawPlan(f);
@@ -479,6 +528,23 @@ function draw(){
   }
   const holes = of('empty'), inHole = r => typeOf(r) !== 'empty' && holes.some(e => r.x0 >= e.x0 && r.x1 <= e.x1 && r.y0 >= e.y0 && r.y1 <= e.y1);
   for (const r of list) if (r.id === selId || !inHole(r)) label(r, r.id === selId);
+  // walls: thick lines with square caps, so walls meeting at a corner close neatly
+  const wl = floorWalls(cur); if (drag && drag.kind === 'newWall') wl.push(drag.w);
+  ctx.lineCap = 'square';
+  for (const w of wl) {
+    const [p,q] = toScr(w.x0,w.y0), [u,v] = toScr(w.x1,w.y1), lw = Math.max(2, w.t*view.s), sel = w.id === selWall;
+    if (sel) { ctx.beginPath(); ctx.moveTo(p,q); ctx.lineTo(u,v); ctx.lineWidth = lw + 5; ctx.strokeStyle = '#ffd23f'; ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(p,q); ctx.lineTo(u,v); ctx.lineWidth = lw; ctx.strokeStyle = sel ? '#5c4300' : '#273244'; ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+  const sw = selWall && wl.find(w => w.id === selWall), lw_ = drag && drag.kind === 'newWall' ? drag.w : sw;
+  if (sw) for (const [hx,hy] of [[sw.x0,sw.y0],[sw.x1,sw.y1]]) { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(p,q,6,0,7); ctx.fill(); ctx.stroke(); }
+  if (lw_ && !exporting) {                               // length read-out
+    const [p,q] = toScr((lw_.x0+lw_.x1)/2, (lw_.y0+lw_.y1)/2), txt = Math.hypot(lw_.x1-lw_.x0, lw_.y1-lw_.y0).toFixed(2) + ' m';
+    ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(txt, p, q-8); ctx.fillStyle = '#5c4300'; ctx.fillText(txt, p, q-8);
+  }
+  if (drag && drag.snapPt) { const [p,q] = toScr(...drag.snapPt); ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p,q,8,0,7); ctx.stroke(); }
   // selection on top
   const sr = selId && list.find(r => r.id === selId);
   if (sr) {
@@ -492,11 +558,25 @@ function draw(){
     for (const y of drag.guides.y) { const [,q] = toScr(0,y); ctx.moveTo(0,q); ctx.lineTo(W,q); }
     ctx.stroke(); ctx.setLineDash([]);
   }
-  placeBar(sr);
+  if (!exporting) placeBar(sr || sw);
 }
 // floating toolbar above the selected box: change type or delete
 function placeBar(r){
   if (!r || (drag && drag.kind !== 'pan')) { bar.style.display = 'none'; return; }
+  if (r.t !== undefined) {                              // a wall: only a delete button
+    const box = {x0:Math.min(r.x0,r.x1), x1:Math.max(r.x0,r.x1), y0:Math.min(r.y0,r.y1), y1:Math.max(r.y0,r.y1)};
+    if (bar.dataset.for !== 'wall' + r.id) {
+      bar.dataset.for = 'wall' + r.id; bar.innerHTML = '';
+      const lab = document.createElement('button'); lab.textContent = '▬ Wall'; lab.disabled = true; bar.appendChild(lab);
+      const del = document.createElement('button'); del.textContent = '🗑'; del.title = 'Delete wall (Del)';
+      del.onclick = e => { e.stopPropagation(); deleteSel(); }; bar.appendChild(del);
+    }
+    bar.style.display = 'flex';
+    const [a,b,w] = scrRect(box), bw = bar.offsetWidth || 120;
+    bar.style.left = Math.min(Math.max(a + w/2, bw/2 + 6), cv.clientWidth - bw/2 - 6) + 'px';
+    bar.style.top = (b - 14 < 46 ? b + (box.y1-box.y0)*view.s + 54 : b - 14) + 'px';
+    return;
+  }
   const [a,b,w] = scrRect(r);
   if (bar.dataset.for !== r.id + typeOf(r)) {
     bar.dataset.for = r.id + typeOf(r); bar.innerHTML = '';
@@ -539,7 +619,7 @@ function hitRoom(wx,wy){
 // snapping: pull a moving edge onto a nearby edge of another box on this floor
 function snapAxis(v, ax, skipId, guides){
   const lim = 8 / view.s; let best = null;
-  for (const o of floorRooms(cur)) {
+  for (const o of [...floorRooms(cur), ...floorWalls(cur)]) {
     if (o.id === skipId) continue;
     for (const e of [o[ax+'0'], o[ax+'1']]) if (Math.abs(e - v) < lim && (best === null || Math.abs(e - v) < Math.abs(best - v))) best = e;
   }
@@ -547,14 +627,46 @@ function snapAxis(v, ax, skipId, guides){
   guides[ax].push(best); return best;
 }
 
+// walls: hit-testing and snapping an end point onto other walls' ends, then box corners/edges
+function segDist(px,py, w){
+  const [ax,ay] = toScr(w.x0,w.y0), [bx,by] = toScr(w.x1,w.y1), dx = bx-ax, dy = by-ay, L = dx*dx+dy*dy;
+  const k = L ? Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy)/L)) : 0;
+  return Math.hypot(px - ax - k*dx, py - ay - k*dy);
+}
+function hitWall(sx,sy){
+  let best = null, bd = Infinity;
+  for (const w of floorWalls(cur)) { const d = segDist(sx,sy,w); if (d < Math.max(6, w.t*view.s/2 + 3) && d < bd) { bd = d; best = w; } }
+  return best;
+}
+function hitWallEnd(sx,sy){
+  const w = selWall && wallById(selWall); if (!w || w.floor !== floors[cur]?.id) return null;
+  for (const end of [0,1]) { const [p,q] = toScr(w['x'+end], w['y'+end]); if (Math.hypot(p-sx, q-sy) < 10) return {w, end}; }
+  return null;
+}
+function snapPoint(x, y, skipId, from, free){
+  const lim = 10 / view.s, g = {x:[], y:[]};
+  let best = null, bd = lim;
+  for (const w of floorWalls(cur)) { if (w.id === skipId) continue;
+    for (const end of [0,1]) { const d = Math.hypot(w['x'+end]-x, w['y'+end]-y); if (d < bd) { bd = d; best = [w['x'+end], w['y'+end]]; } } }
+  for (const r of floorRooms(cur)) for (const [cx,cy] of [[r.x0,r.y0],[r.x1,r.y0],[r.x0,r.y1],[r.x1,r.y1]]) { const d = Math.hypot(cx-x, cy-y); if (d < bd) { bd = d; best = [cx,cy]; } }
+  if (best) return {x:best[0], y:best[1], guides:g, pt:best};
+  if (from && !free) {                                   // keep walls straight: lock to horizontal / vertical near 0° / 90°
+    const ang = Math.abs(Math.atan2(y - from[1], x - from[0])) * 180/Math.PI;
+    if (ang < 8 || ang > 172) y = from[1]; else if (Math.abs(ang - 90) < 8) x = from[0];
+  }
+  return {x: snapAxis(x,'x',skipId,g), y: snapAxis(y,'y',skipId,g), guides:g, pt:null};
+}
+const roundW = w => ['x0','y0','x1','y1'].forEach(k => w[k] = Math.round(w[k]*100)/100);
+
 let tool = 'draw', space = false, drag = null;
-function setTool(t){ tool = t; $('tDraw').classList.toggle('on', t==='draw'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
-$('tDraw').onclick = () => setTool('draw'); $('tPan').onclick = () => setTool('pan');
+function setTool(t){ tool = t; $('tDraw').classList.toggle('on', t==='draw'); $('tWall').classList.toggle('on', t==='wall'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
+$('tDraw').onclick = () => setTool('draw'); $('tWall').onclick = () => setTool('wall'); $('tPan').onclick = () => setTool('pan');
 $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function cancelDrag(){
   const d = drag; if (!d) return; drag = null;
   if ((d.kind === 'move' || d.kind === 'resize') && d.moved) { Object.assign(d.r, d.orig); undoStack.pop(); }
+  if ((d.kind === 'wallEnd' || d.kind === 'moveWall') && d.moved) { Object.assign(d.w, d.orig); undoStack.pop(); }
   setTool(tool); draw();
 }
 cv.addEventListener('pointerdown', e => {
@@ -564,6 +676,16 @@ cv.addEventListener('pointerdown', e => {
   if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor='grabbing'; return; }
   if (!floors[cur]) return;
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+  // with the Wall tool, pressing on a wall end starts a new, connected wall; otherwise it moves that end
+  const we = tool === 'wall' ? null : hitWallEnd(sx,sy);
+  if (we) { drag = {kind:'wallEnd', w:we.w, end:we.end, orig:{...we.w}, moved:false}; return; }
+  const hw = hitWall(sx,sy);
+  if (hw && hw.id === selWall && tool !== 'wall') { drag = {kind:'moveWall', w:hw, wx, wy, orig:{...hw}, moved:false}; return; }
+  if (tool === 'wall') {
+    const sp = e.altKey ? {x:wx, y:wy, pt:null} : snapPoint(wx, wy, null);
+    drag = {kind:'newWall', clickWall:hw, clickRoom:hitRoom(wx,wy), snapPt:sp.pt, w:{id:uid(), floor:floors[cur].id, x0:sp.x, y0:sp.y, x1:sp.x, y1:sp.y, t:wallT}};
+    draw(); return;
+  }
   const h = hitHandle(sx,sy);
   if (h) { const r = byId(selId); drag = {kind:'resize', h, r, orig:{...r}, moved:false}; return; }
   // a selected box is moved by dragging it; dragging anywhere else (even over another box) draws a new box,
@@ -571,18 +693,35 @@ cv.addEventListener('pointerdown', e => {
   const r = hitRoom(wx,wy), sel = selId && byId(selId);
   if (sel && sel.floor === floors[cur].id && wx>=sel.x0 && wx<=sel.x1 && wy>=sel.y0 && wy<=sel.y1) { drag = {kind:'move', r:sel, wx, wy, orig:{...sel}, moved:false}; return; }
   const g = {x:[], y:[]}, x = e.altKey ? wx : snapAxis(wx,'x',null,g), y = e.altKey ? wy : snapAxis(wy,'y',null,g);
-  drag = {kind:'new', clickPick:r, wx:x, wy:y, guides:g, r:{id:uid(), floor:floors[cur].id, type:drawType, no:'', name:'', x0:x, y0:y, x1:x, y1:y}};
+  drag = {kind:'new', clickPick:r, clickWall:hw, wx:x, wy:y, guides:g, r:{id:uid(), floor:floors[cur].id, type:drawType, no:'', name:'', x0:x, y0:y, x1:x, y1:y}};
   draw();
 });
 cv.addEventListener('pointermove', e => {
   const sx = e.offsetX, sy = e.offsetY; let [wx,wy] = toW(sx,sy);
   if (!drag) {
     if (space || tool==='pan') return;
+    if (tool !== 'wall' && hitWallEnd(sx,sy)) { cv.style.cursor = 'grab'; return; }
+    const hw = hitWall(sx,sy);
+    if (tool === 'wall') { cv.style.cursor = 'crosshair'; return; }
+    if (hw) { cv.style.cursor = hw.id === selWall ? 'move' : 'pointer'; return; }
     const h = hitHandle(sx,sy), sel = selId && byId(selId);
     const onSel = sel && sel.floor === floors[cur]?.id && wx>=sel.x0 && wx<=sel.x1 && wy>=sel.y0 && wy<=sel.y1;
     cv.style.cursor = h ? CURSOR[h] : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
   }
   if (drag.kind === 'pan') { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; draw(); return; }
+  if (drag.kind === 'newWall' || drag.kind === 'wallEnd') {
+    const w = drag.w, end = drag.kind === 'newWall' ? 1 : drag.end, other = end ? [w.x0,w.y0] : [w.x1,w.y1];
+    if (drag.kind === 'wallEnd' && !drag.moved) { snapshot(); drag.moved = true; }
+    const sp = e.altKey ? {x:wx, y:wy, guides:null, pt:null} : snapPoint(wx, wy, w.id, other, e.shiftKey);
+    w['x'+end] = sp.x; w['y'+end] = sp.y; drag.guides = sp.guides; drag.snapPt = sp.pt; draw(); return;
+  }
+  if (drag.kind === 'moveWall') {
+    if (!drag.moved) { snapshot(); drag.moved = true; }
+    const w = drag.w, o = drag.orig; let dx = wx-drag.wx, dy = wy-drag.wy;
+    const sp = e.altKey ? null : snapPoint(o.x0+dx, o.y0+dy, w.id);
+    if (sp && sp.pt) { dx = sp.x - o.x0; dy = sp.y - o.y0; }
+    w.x0 = o.x0+dx; w.y0 = o.y0+dy; w.x1 = o.x1+dx; w.y1 = o.y1+dy; drag.snapPt = sp && sp.pt; draw(); return;
+  }
   const g = {x:[], y:[]}, snap = !e.altKey, skip = drag.r.id;
   if (drag.kind === 'new') {
     if (snap) { wx = snapAxis(wx,'x',skip,g); wy = snapAxis(wy,'y',skip,g); }
@@ -615,10 +754,19 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerup', () => {
   const d = drag; drag = null; if (!d) return;
   if (d.kind === 'pan') { setTool(tool); draw(); return; }
+  if (d.kind === 'newWall') {
+    const w = d.w;
+    if (Math.hypot(w.x1-w.x0, w.y1-w.y0)*view.s < 8) {           // just a click: select what's under it
+      if (d.clickWall) selectWall(d.clickWall.id); else if (d.clickRoom) selectRoom(d.clickRoom.id); else { selId = selWall = null; refreshUI(); draw(); }
+      return;
+    }
+    snapshot(); roundW(w); walls.push(w); afterChange(); selectWall(w.id); return;
+  }
+  if (d.kind === 'wallEnd' || d.kind === 'moveWall') { if (d.moved) { roundW(d.w); afterChange(); } else draw(); return; }
   if (d.kind === 'new') {
     const r = d.r;
     if ((r.x1-r.x0)*view.s < 8 || (r.y1-r.y0)*view.s < 8) {          // just a click: select what's under it
-      if (d.clickPick) selectRoom(d.clickPick.id); else { selId = null; refreshUI(); draw(); }
+      if (d.clickWall) selectWall(d.clickWall.id); else if (d.clickPick) selectRoom(d.clickPick.id); else { selId = selWall = null; refreshUI(); draw(); }
       return;
     }
     snapshot(); round(r); if (r.type === 'room') r.no = suggestNo(); rooms.push(r); afterChange();
@@ -637,32 +785,87 @@ addEventListener('keydown', e => {
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.shiftKey ? redo() : undo(); e.preventDefault(); return; }
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { redo(); e.preventDefault(); return; }
   if (typing || mode !== '2d') return;
-  if (e.key === 'Escape') { if (drag) cancelDrag(); else { selId = null; refreshUI(); draw(); } return; }
+  if (e.key === 'Escape') { if (drag) cancelDrag(); else { selId = selWall = null; refreshUI(); draw(); } return; }
   if (e.code === 'Space') { space = true; cv.style.cursor = 'grab'; e.preventDefault(); }
   if (e.key === 'Delete' || e.key === 'Backspace') deleteSel();
   if (e.key === 'Enter' && selId) { $('iNo').focus(); $('iNo').select(); e.preventDefault(); }
-  if (/^[1-5]$/.test(e.key)) { const k = TYPE_KEYS[+e.key-1]; setDrawType(k); if (selId) setSelType(k); }
-  if (e.key === 'b') setTool('draw'); if (e.key === 'h') setTool('pan'); if (e.key === 'f') fit();
+  if (/^[1-6]$/.test(e.key)) { const k = TYPE_KEYS[+e.key-1]; setDrawType(k); if (selId) setSelType(k); }
+  if (e.key === 'b') setTool('draw'); if (e.key === 'w') setTool('wall'); if (e.key === 'h') setTool('pan'); if (e.key === 'f') fit();
 });
 addEventListener('keyup', e => { if (e.code === 'Space') { space = false; setTool(tool); } });
 addEventListener('resize', () => { resize(); view3d.resize(); });
 
 // ---------- export / import ----------
-$('bExport').onclick = () => {
-  const blob = new Blob([JSON.stringify({app:'waypoint', version:1, floors, rooms}, null, 1)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `waypoint-rooms-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+const stamp = () => new Date().toISOString().slice(0,16).replace(/[-:]/g,'').replace('T','-');
+function toast(t, ms=3500){ const el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', ms); }
+function download(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const slugName = t => (t || 'floor').replace(/[^A-Za-z0-9_-]+/g, '-');
+// the current floor as a PNG at the plan image's own resolution (boxes, walls and labels included)
+async function exportPng2d(){
+  const fi = Math.max(cur, 0), f = floors[fi]; if (!f) return toast('Add a floor first.');
+  await Promise.all([loadImg(fi), loadImg(fi-1)]);
+  const [x0,y0,x1,y1] = f.extent, im = imgs[planUrl(f)]?.im;
+  const pxm = Math.min(im && im.naturalWidth ? im.naturalWidth/(x1-x0) : 30, 8000/(x1-x0), 8000/(y1-y0));
+  const off = document.createElement('canvas'); off.width = Math.round((x1-x0)*pxm); off.height = Math.round((y1-y0)*pxm);
+  const saved = {ctx, view:{...view}, selId, selWall, cur, drag};
+  try {
+    ctx = off.getContext('2d'); view = {s:pxm, ox:-x0*pxm, oy:-y0*pxm}; selId = selWall = null; drag = null; cur = fi; hatch = null;
+    exporting = {W:off.width, H:off.height}; draw();
+  } finally { exporting = null; ({ctx, selId, selWall, cur, drag} = saved); view = saved.view; hatch = null; draw(); }
+  off.toBlob(b => { download(b, `waypoint-${slugName(f.name)}-${stamp()}.png`); toast('2D floor image downloaded.'); }, 'image/png');
+}
+async function runExport(kind){
+  $('mExport').classList.remove('open');
+  if (kind === 'json') {
+    download(new Blob([JSON.stringify({app:'waypoint', version:1, floors, rooms, walls}, null, 1)], {type:'application/json'}), `waypoint-rooms-${stamp()}.json`);
+    return toast('Rooms and walls downloaded (plan images are not included).');
+  }
+  if (kind === 'zip') {
+    if (!serverOK) return toast('Cannot reach the Waypoint server.');
+    clearTimeout(saveTimer); await fetch('api/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({version:1, rooms, walls})}).catch(() => {});
+    const a = document.createElement('a'); a.href = 'api/export'; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
+    return toast('Full backup is downloading.');
+  }
+  if (kind === 'png2d') return exportPng2d();
+  if (!floors.length) return toast('Add a floor first.');
+  if (mode !== '3d') await setMode('3d');
+  try {
+    if (kind === 'png3d') { download(await view3d.snapshotPng(), `waypoint-3d-${stamp()}.png`); toast('3D view image downloaded.'); }
+    if (kind === 'glb')   { toast('Building the 3D model…', 10000); download(await view3d.exportGlb(), `waypoint-3d-${stamp()}.glb`); toast('3D model downloaded (.glb).'); }
+  } catch (err) { console.error(err); toast('Export failed: ' + (err.message || err)); }
+}
+$('bExport').onclick = e => {
+  e.stopPropagation(); const m = $('mExport'), r = e.currentTarget.getBoundingClientRect();
+  m.style.top = (r.bottom + 6) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 270)) + 'px'; m.classList.toggle('open');
 };
+$('mExport').querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); runExport(b.dataset.x); });
+addEventListener('click', () => $('mExport').classList.remove('open'));
 $('bImport').onclick = () => $('fImport').click();
 $('fImport').onchange = async e => {
   const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  if (/\.zip$/i.test(file.name) || file.type.includes('zip')) {
+    if (!confirm(`Restore the full backup “${file.name}”?\n\nThis replaces ALL floors, plan images, rooms and walls on the server. ` +
+                 `The current data is kept in the data folder under backups/ first, so it can be recovered.`)) return;
+    toast('Restoring backup…', 20000);
+    try {
+      const r = await fetch('api/import', {method:'POST', headers:{'Content-Type':'application/zip'}, body:file});
+      const j = await r.json(); if (!r.ok) throw new Error(j.error);
+      alert(`Backup restored: ${j.floors} floors, ${j.rooms} boxes, ${j.walls} walls.\nPrevious data saved in ${j.previous_data}.`);
+      location.reload();
+    } catch (err) { toast('Restore failed: ' + (err.message || err), 8000); }
+    return;
+  }
   try {
     const d = JSON.parse(await file.text()); if (!Array.isArray(d.rooms)) throw 0;
     const ids = new Set(floors.map(f => f.id)), orphans = d.rooms.filter(r => !ids.has(r.floor)).length;
-    if (!confirm(`Replace the current ${rooms.length} rooms with ${d.rooms.length} rooms from ${file.name}?` +
-      (orphans ? `\n\n${orphans} of them belong to floors that don't exist here and will be hidden until a floor with the same id is added.` : ''))) return;
-    snapshot(); rooms = d.rooms; afterChange();
-  } catch { alert('That file is not a Waypoint rooms export.'); }
+    if (!confirm(`Replace the current ${rooms.length} boxes and ${walls.length} walls with ${d.rooms.length} boxes and ${(d.walls||[]).length} walls from ${file.name}?` +
+      (orphans ? `\n\n${orphans} of them belong to floors that don't exist here and will be hidden until a floor with the same id is added.` : '') +
+      `\n\nPlan images are not part of a .json file; use a full backup (.zip) to move everything.`)) return;
+    snapshot(); rooms = d.rooms; walls = Array.isArray(d.walls) ? d.walls : []; afterChange();
+  } catch { alert('That file is not a Waypoint backup (.zip) or rooms export (.json).'); }
 };
 
 // ---------- floor manager ----------
@@ -723,7 +926,7 @@ $('fSave').onclick = async () => {
   } catch (err) { return $('fErr').textContent = 'Save failed: ' + (err.message || err); }
   const curId = floors[cur]?.id;
   floors = draft; sortFloors();
-  if (dropped.length) { snapshot(); rooms = rooms.filter(r => keep.has(r.floor)); scheduleSave(); }
+  if (dropped.length || walls.some(w => !keep.has(w.floor))) { snapshot(); rooms = rooms.filter(r => keep.has(r.floor)); walls = walls.filter(w => keep.has(w.floor)); scheduleSave(); }
   $('dlgFloors').close();
   cur = Math.max(0, floors.findIndex(f => f.id === curId));
   if (mode === '3d') await setMode('3d'); else setFloor(cur);
@@ -761,6 +964,12 @@ const view3d = (() => {
       if (m) {
         m.material.opacity = .85; const r = m.userData.r;
         tip.innerHTML = `<b></b><div class="m"></div><div class="m">Double-click to edit</div>`;
+        if (m.userData.t === 'wall') {
+          tip.querySelector('b').textContent = 'Wall';
+          tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${Math.hypot(r.x1-r.x0, r.y1-r.y0).toFixed(2)} m long · ${r.t} m thick`;
+          tip.style.display = 'block'; tip.style.left = Math.min(e.clientX+14, innerWidth-260)+'px'; tip.style.top = (e.clientY+14)+'px';
+          dom.style.cursor = 'pointer'; return;
+        }
         const t = typeOf(r);
         tip.querySelector('b').textContent = [r.no, r.name].filter(Boolean).join(' · ') || TYPES[t].label;
         tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${TYPES[t].label}${t === 'empty' && m.userData.fi > 0 ? ' (open to ' + floors[m.userData.fi-1].name + ')' : ''} · ${((r.x1-r.x0)*(r.y1-r.y0)).toFixed(1)} m²`;
@@ -771,7 +980,12 @@ const view3d = (() => {
     dom.addEventListener('pointerleave', () => tip.style.display = 'none');
     dom.addEventListener('pointerdown', e => down = [e.clientX,e.clientY]);
     dom.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX-down[0],e.clientY-down[1]) < 4) { const m = pick(e); if (m) focus(m.userData.r); } });
-    dom.addEventListener('dblclick', async e => { const m = pick(e); if (m) { const r = m.userData.r; await setMode('2d'); setFloor(floors.findIndex(f => f.id === r.floor)); setTimeout(() => { selectRoom(r.id,true); centerOn(r); }, 60); } });
+    dom.addEventListener('dblclick', async e => {
+      const m = pick(e); if (!m) return;
+      const r = m.userData.r, isWall = m.userData.t === 'wall';
+      await setMode('2d'); setFloor(floors.findIndex(f => f.id === r.floor));
+      setTimeout(() => { if (isWall) { selectWall(r.id); centerOn({x0:Math.min(r.x0,r.x1), x1:Math.max(r.x0,r.x1)+.5, y0:Math.min(r.y0,r.y1), y1:Math.max(r.y0,r.y1)+.5}); } else { selectRoom(r.id,true); centerOn(r); } }, 60);
+    });
     for (const id of ['explode','hScale','showPlan','showLabels']) $(id).addEventListener('input', layout);
     started = true; resize();
     (function loop(){ requestAnimationFrame(loop); if (mode !== '3d') return;
@@ -821,7 +1035,7 @@ const view3d = (() => {
     const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
     const k = 0.035 * SPAN/130; sp.scale.set(c.width*k, c.height*k, 1); sp.renderOrder = 5; return sp;
   }
-  const OPACITY = {room:.45, walkway:.32, stair:.55, elevator:.55, empty:.07};
+  const OPACITY = {room:.45, bathroom:.5, walkway:.32, stair:.55, elevator:.55, empty:.07, wall:.92};
   function rebuild(){
     buildFloors(); meshes = [];
     for (const r of rooms) {
@@ -834,8 +1048,20 @@ const view3d = (() => {
       if (t !== 'walkway') m.add(new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color: t === 'empty' ? 0x8b93a3 : col, transparent:true})));
       m.position.set((r.x0+r.x1)/2-CX, 0, (r.y0+r.y1)/2-CZ); m.userData = {r, fi, t, op:OPACITY[t]};
       g.userData.boxes.add(m); meshes.push(m);
-      const named = t === 'room' || t === 'stair' || t === 'elevator' || r.no || r.name;
+      m.name = [TYPES[t].label, r.no, r.name].filter(Boolean).join(' ');   // shows up in exported 3D models
+      const named = t === 'room' || t === 'bathroom' || t === 'stair' || t === 'elevator' || r.no || r.name;
       if (named) { const sp = labelSprite(r); sp.position.set(m.position.x, 0, m.position.z); sp.userData.t = t; g.userData.labels.add(sp); }
+    }
+    // walls: thin upright boxes along each segment, as tall as the rooms
+    for (const w of walls) {
+      const fi = floors.findIndex(f => f.id === w.floor); if (fi < 0) continue;
+      const dx = w.x1-w.x0, dy = w.y1-w.y0, L = Math.hypot(dx, dy); if (L < 0.01) continue;
+      const geo = new T.BoxGeometry(L + w.t, 1, w.t); geo.translate(0, .5, 0);     // + t closes corners like the 2D view
+      const m = new T.Mesh(geo, new T.MeshStandardMaterial({color:0xd9dee7, transparent:true, opacity:OPACITY.wall, roughness:.9}));
+      m.add(new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color:0x4a5568, transparent:true})));
+      m.position.set((w.x0+w.x1)/2-CX, 0, (w.y0+w.y1)/2-CZ); m.rotation.y = -Math.atan2(dy, dx);
+      m.name = 'Wall'; m.userData = {r:w, fi, t:'wall', op:OPACITY.wall};
+      groups[fi].userData.boxes.add(m); meshes.push(m);
     }
     floors.forEach((f, fi) => {
       const ww = rooms.filter(r => r.floor === f.id && typeOf(r) === 'walkway'); if (!ww.length) return;
@@ -895,6 +1121,28 @@ const view3d = (() => {
     },
     hide(){ el.style.display = 'none'; tip.style.display = 'none'; },
     setFloor: i => started && setFloorI(i), focus, resize,
+    // PNG of exactly what the camera shows, rendered at (at least) 2x pixel density
+    async snapshotPng(){
+      const pr = renderer.getPixelRatio();
+      renderer.setPixelRatio(Math.max(2, pr)); controls.update(); renderer.render(scene, camera);
+      const blob = await new Promise(res => renderer.domElement.toBlob(res, 'image/png'));   // captured synchronously after render
+      renderer.setPixelRatio(pr); return blob;
+    },
+    // binary glTF of the visible floors (plans, boxes, walls); labels and the floor-hole cut-outs are not part of glTF
+    async exportGlb(){
+      const {GLTFExporter} = await import('three/addons/exporters/GLTFExporter.js');
+      const root = new T.Group(); root.name = 'Waypoint';
+      groups.forEach((g, i) => {
+        if (!g.visible) return;
+        const fg = new T.Group(); fg.name = floors[i].name; fg.position.copy(g.position);
+        if (g.userData.plane.material.opacity > 0) { const p = g.userData.plane.clone(); p.name = floors[i].name + ' plan'; fg.add(p); }
+        for (const c of g.userData.boxes.children) fg.add(c.clone(true));
+        root.add(fg);
+      });
+      root.updateMatrixWorld(true);
+      const buf = await new GLTFExporter().parseAsync(root, {binary:true, onlyVisible:true});
+      return new Blob([buf], {type:'model/gltf-binary'});
+    },
   };
 })();
 

@@ -64,7 +64,7 @@
   {
    "id": "demo-demo-ground-G06",
    "floor": "demo-ground",
-   "type": "room",
+   "type": "bathroom",
    "no": "G06",
    "name": "Demo – Toilets",
    "x0": 10.15,
@@ -220,7 +220,7 @@
   {
    "id": "demo-demo-level-1-106",
    "floor": "demo-level-1",
-   "type": "room",
+   "type": "bathroom",
    "no": "106",
    "name": "Demo – Toilets",
    "x0": 15.15,
@@ -300,6 +300,44 @@
    "x1": 25.7,
    "y1": 12.4,
    "demo": true
+  }
+ ],
+ "walls": [
+  {
+   "id": "demo-demo-ground-wall-0",
+   "floor": "demo-ground",
+   "x0": 32,
+   "y0": 1.2,
+   "x1": 32,
+   "y1": 6,
+   "t": 0.15
+  },
+  {
+   "id": "demo-demo-ground-wall-1",
+   "floor": "demo-ground",
+   "x0": 32,
+   "y0": 6,
+   "x1": 36,
+   "y1": 6,
+   "t": 0.15
+  },
+  {
+   "id": "demo-demo-level-1-wall-0",
+   "floor": "demo-level-1",
+   "x0": 30,
+   "y0": 1.2,
+   "x1": 30,
+   "y1": 6,
+   "t": 0.15
+  },
+  {
+   "id": "demo-demo-level-1-wall-1",
+   "floor": "demo-level-1",
+   "x0": 30,
+   "y0": 6,
+   "x1": 34,
+   "y1": 6,
+   "t": 0.15
   }
  ]
 }

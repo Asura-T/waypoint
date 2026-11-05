@@ -9,20 +9,25 @@ Standard library only. Configuration (environment variables):
 
 Data layout in DATA_DIR:
   floors.json   {"floors": [{id, name, elev, extent:[x0,y0,x1,y1], plan, demo?}]}
-  rooms.json    {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1}]}
-                type: room | walkway | stair | elevator | empty (opening to the floor below)
+  rooms.json    {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1}],
+                 "walls": [{id, floor, x0, y0, x1, y1, t}]}
+                type: room | bathroom | walkway | stair | elevator | empty (opening to the floor below)
+                walls are straight segments in metres, t = thickness in metres
   plans/        floor plan images referenced by floors.json
   *.bak.json    previous version of each file, written before every save
+  backups/      automatic copies taken before a backup is imported (never exported)
 
 API:
   GET  /api/health          liveness check + version
-  GET  /api/map             {"floors": [...], "rooms": [...]}
-  PUT  /api/rooms           replace all rooms
+  GET  /api/map             {"floors": [...], "rooms": [...], "walls": [...]}
+  PUT  /api/rooms           replace all rooms (and walls, when "walls" is sent)
+  GET  /api/export          download everything (floors, rooms, walls, plan images) as one .zip
+  POST /api/import          restore such a .zip (raw body); the current data is copied to backups/ first
   PUT  /api/floors          replace the floor list
   POST /api/plans/<floorId> upload a plan image (raw PNG/JPEG/WebP body) -> {"plan": "plans/<file>"}
   GET  /files/plans/<file>  plan image
 """
-import json, os, re, shutil, signal, sys, threading, time
+import io, json, os, re, shutil, signal, sys, threading, time, zipfile
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +39,8 @@ MAX_UPLOAD = int(float(os.environ.get('WAYPOINT_MAX_UPLOAD_MB', '40')) * 1024 * 
 MAX_JSON = 10 * 1024 * 1024
 ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$')
 FILE_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$')
-ROOM_TYPES = ('room', 'walkway', 'stair', 'elevator', 'empty')
+ROOM_TYPES = ('room', 'bathroom', 'walkway', 'stair', 'elevator', 'empty')
+MAX_IMPORT = int(float(os.environ.get('WAYPOINT_MAX_IMPORT_MB', '300')) * 1024 * 1024)
 IMAGE_TYPES = {b'\x89PNG': 'png', b'\xff\xd8\xff': 'jpg', b'RIFF': 'webp'}
 VERSION = os.environ.get('WAYPOINT_VERSION', 'dev')
 lock = threading.Lock()
@@ -106,6 +112,75 @@ def clean_room(r):
     return out
 
 
+def clean_wall(w):
+    if not isinstance(w, dict) or not all(num(w.get(k)) for k in ('x0', 'y0', 'x1', 'y1')):
+        raise ValueError('wall needs numeric x0, y0, x1, y1')
+    t = w.get('t', 0.2)
+    if not num(t) or not 0.02 <= t <= 3:
+        raise ValueError('wall thickness must be 0.02-3 m')
+    return {'id': str(w.get('id', ''))[:40], 'floor': str(w.get('floor', ''))[:40], 't': float(t),
+            **{k: float(w[k]) for k in ('x0', 'y0', 'x1', 'y1')}}
+
+
+def export_zip():
+    """Everything needed to rebuild the map, as one zip held in memory."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+        z.writestr('waypoint-backup.json', json.dumps({'app': 'waypoint', 'format': 1, 'version': VERSION,
+                                                       'exported_at': time.strftime('%Y-%m-%dT%H:%M:%S%z')}))
+        for name in ('floors.json', 'rooms.json'):
+            if os.path.exists(os.path.join(DATA, name)):
+                z.write(os.path.join(DATA, name), name)
+        for f in sorted(os.listdir(PLANS)):
+            if FILE_RE.match(f) and os.path.isfile(os.path.join(PLANS, f)):
+                z.write(os.path.join(PLANS, f), 'plans/' + f, compress_type=zipfile.ZIP_STORED)   # images are compressed already
+    return buf.getvalue()
+
+
+def import_zip(raw):
+    """Validate a backup zip completely, then swap it in; the current data is moved to backups/ first."""
+    try:
+        z = zipfile.ZipFile(io.BytesIO(raw))
+    except zipfile.BadZipFile:
+        raise ValueError('not a zip file')
+    if sum(i.file_size for i in z.infolist()) > 4 * MAX_IMPORT:
+        raise ValueError('backup unpacks to more than the allowed size')
+    names = z.namelist()
+    if 'floors.json' not in names or 'rooms.json' not in names:
+        raise ValueError('not a Waypoint backup (floors.json / rooms.json missing)')
+    floors = [clean_floor(f) for f in json.loads(z.read('floors.json')).get('floors', [])]
+    rd = json.loads(z.read('rooms.json'))
+    rooms = [clean_room(r) for r in rd.get('rooms', [])]
+    walls = [clean_wall(w) for w in rd.get('walls', [])]
+    plans = {}
+    for n in names:
+        if n.startswith('plans/') and n != 'plans/':
+            f = n[6:]
+            if not FILE_RE.match(f):
+                raise ValueError(f'bad file name in backup: {n}')
+            data = z.read(n)
+            if not any(data.startswith(m) for m in IMAGE_TYPES):
+                raise ValueError(f'not an image: {n}')
+            plans[f] = data
+        elif n not in ('floors.json', 'rooms.json', 'waypoint-backup.json') and not n.endswith('/'):
+            raise ValueError(f'unexpected file in backup: {n}')
+    missing = [f['plan'] for f in floors if f['plan'] and f['plan'][6:] not in plans]
+    if missing:
+        raise ValueError('plan images missing from backup: ' + ', '.join(missing))
+    keep = os.path.join(DATA, 'backups', 'pre-import-' + time.strftime('%Y%m%d-%H%M%S'))
+    os.makedirs(keep)
+    for name in ('floors.json', 'rooms.json', 'plans'):
+        if os.path.exists(os.path.join(DATA, name)):
+            shutil.move(os.path.join(DATA, name), os.path.join(keep, name))
+    os.makedirs(PLANS)
+    for f, data in plans.items():
+        with open(os.path.join(PLANS, f), 'wb') as fh:
+            fh.write(data)
+    write_json('floors.json', {'floors': floors})
+    write_json('rooms.json', {'version': 1, 'rooms': rooms, 'walls': walls})
+    return {'floors': len(floors), 'rooms': len(rooms), 'walls': len(walls), 'previous_data': os.path.relpath(keep, DATA)}
+
+
 class Handler(SimpleHTTPRequestHandler):
     server_version = 'Waypoint'
 
@@ -142,8 +217,18 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, {'ok': True, 'version': VERSION})
         if path == '/api/map':
             with lock:
+                rd = read_json('rooms.json', {'rooms': []})
                 return self._json(200, {'floors': read_json('floors.json', {'floors': []})['floors'],
-                                        'rooms': read_json('rooms.json', {'rooms': []})['rooms']})
+                                        'rooms': rd['rooms'], 'walls': rd.get('walls', [])})
+        if path == '/api/export':
+            with lock:
+                data = export_zip()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/zip')
+            self.send_header('Content-Disposition', f'attachment; filename="waypoint-backup-{time.strftime("%Y%m%d-%H%M")}.zip"')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            return self.wfile.write(data)
         if path.startswith('/files/plans/'):
             name = path[len('/files/plans/'):]
             full = os.path.join(PLANS, name)
@@ -168,9 +253,12 @@ class Handler(SimpleHTTPRequestHandler):
             data = json.loads(self._body(MAX_JSON))
             if path == '/api/rooms':
                 rooms = [clean_room(r) for r in data.get('rooms', [])]
+                walls = [clean_wall(w) for w in data['walls']] if 'walls' in data else None
                 with lock:
-                    write_json('rooms.json', {'version': 1, 'rooms': rooms})
-                return self._json(200, {'ok': True, 'count': len(rooms)})
+                    if walls is None:                      # older clients: keep the walls already saved
+                        walls = read_json('rooms.json', {}).get('walls', [])
+                    write_json('rooms.json', {'version': 1, 'rooms': rooms, 'walls': walls})
+                return self._json(200, {'ok': True, 'count': len(rooms), 'walls': len(walls)})
             if path == '/api/floors':
                 floors = [clean_floor(f) for f in data.get('floors', [])]
                 if len({f['id'] for f in floors}) != len(floors):
@@ -184,6 +272,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split('?')[0]
+        if path == '/api/import':
+            try:
+                raw = self._body(MAX_IMPORT)
+                with lock:
+                    result = import_zip(raw)
+            except (ValueError, KeyError, TypeError, AttributeError, json.JSONDecodeError) as e:
+                return self._json(400, {'error': str(e)})
+            return self._json(200, {'ok': True, **result})
         if not path.startswith('/api/plans/'):
             return self._json(404, {'error': 'not found'})
         fid = path[len('/api/plans/'):]

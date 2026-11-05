@@ -31,7 +31,7 @@ FLOORS = [
 ]
 
 os.makedirs(os.path.join(ROOT, 'plans'), exist_ok=True)
-floors, rooms = [], []
+floors, rooms, walls = [], [], []
 for fid, fname, elev, rs in FLOORS:
     img = Image.new('L', (W * PXM, H * PXM), 255)
     d = ImageDraw.Draw(img)
@@ -46,7 +46,7 @@ for fid, fname, elev, rs in FLOORS:
         dx = P((x0 + x1) / 2)
         d.rectangle([dx - 18, dy - WALL, dx + 18, dy + WALL], fill=255)
         d.text((P((x0 + x1) / 2), P((y0 + y1) / 2)), name, fill=110, font=font(22), anchor='mm')
-        rooms.append({'id': f'demo-{fid}-{no}', 'floor': fid, 'type': 'room', 'no': no, 'name': f'Demo – {name}',
+        rooms.append({'id': f'demo-{fid}-{no}', 'floor': fid, 'type': 'bathroom' if name == 'Toilets' else 'room', 'no': no, 'name': f'Demo – {name}',
                       'x0': x0 + 0.15, 'y0': y0 + 0.15, 'x1': x1 - 0.15, 'y1': y1 - 0.15, 'demo': True})
     # corridor drawn as two touching walkway pieces (they join into one path), plus a stair and an elevator
     end = 28 if fid == 'demo-ground' else 26
@@ -55,11 +55,15 @@ for fid, fname, elev, rs in FLOORS:
     for kind, no, name, x0, y0, x1, y1 in extra:
         rooms.append({'id': f'demo-{fid}-{kind}-{x0:g}', 'floor': fid, 'type': kind, 'no': no, 'name': name,
                       'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1, 'demo': True})
+    # a few drawn walls: an L-shaped partition inside the open office
+    ox = 28 if fid == 'demo-ground' else 26
+    for i, (x0, y0, x1, y1) in enumerate([(ox + 4, 1.2, ox + 4, 6), (ox + 4, 6, ox + 8, 6)]):
+        walls.append({'id': f'demo-{fid}-wall-{i}', 'floor': fid, 'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1, 't': 0.15})
     d.text((P(1.2), P(H - 1.1)), f'{fname} - fictional demo plan, not a real building', fill=90, font=font(18), anchor='ls')
     d.text((P(20), P(12)), 'Corridor', fill=150, font=font(20), anchor='mm')
     img.save(os.path.join(ROOT, 'plans', f'{fid}.png'), optimize=True)
     floors.append({'id': fid, 'name': fname, 'elev': elev, 'extent': [0, 0, W, H], 'plan': f'plans/{fid}.png', 'demo': True})
 
 json.dump({'floors': floors}, open(os.path.join(ROOT, 'floors.json'), 'w'), indent=1)
-json.dump({'version': 1, 'rooms': rooms}, open(os.path.join(ROOT, 'rooms.json'), 'w'), indent=1, ensure_ascii=False)
-print(len(floors), 'floors,', len(rooms), 'rooms written to', os.path.abspath(ROOT))
+json.dump({'version': 1, 'rooms': rooms, 'walls': walls}, open(os.path.join(ROOT, 'rooms.json'), 'w'), indent=1, ensure_ascii=False)
+print(len(floors), 'floors,', len(rooms), 'rooms,', len(walls), 'walls written to', os.path.abspath(ROOT))

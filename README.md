@@ -7,12 +7,20 @@ You upload a floor plan image for each floor, draw a box around each room, and g
 - **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
 - **Box types**:
   - **Room**: needs a room number. The name is optional.
+  - **Bathroom**: toilets and washrooms. The number is optional.
   - **Walkway**: corridors and paths. Walkway boxes that touch join into one connected path, in both the 2D and 3D views.
   - **Stair / Elevator**: drawn as shafts that reach up to the next floor in 3D.
   - **Empty**: an opening in the floor, such as an atrium or void. It cuts a hole in the floor plan, so the floor below shows through, in 2D and 3D.
-- **3D view**: shows all floors stacked, or one floor on its own. Hover over a room to see its details. Double-click a room to edit it.
+- **Walls** (the **▬ Wall** tool, or <kbd>W</kbd>): drag from one end of a wall to the other. Walls stay straight unless you hold <kbd>Shift</kbd>. Their ends snap onto other walls' ends and box corners, so walls join up. With the Wall tool, start the next wall on the end of the last one to keep drawing joined walls. To move a wall or one of its ends, switch to the Box tool, click the wall, then drag it or its round end handles. Set its thickness in the side panel, or delete it. In 3D, walls stand as tall as the rooms.
+- **3D view**: shows all floors stacked, or one floor on its own. Hover over a room or wall to see its details. Double-click it to edit it.
 - **Floors…**: add, rename or delete floors, upload plan images, and set each floor's height and alignment.
-- **Export / Import**: download the rooms as JSON, or load them back from a JSON file.
+- **Export ▾**:
+  - **Full backup (.zip)**: floors, plan images, rooms and walls. Restore it with **Import**.
+  - **Rooms & walls (.json)**: without the plan images.
+  - **2D floor image (.png)**: the current floor at the plan's full resolution.
+  - **3D view image (.png)**: exactly what the 3D camera shows.
+  - **3D model (.glb)**: the floors shown in the 3D view (pick **All** for the whole building). Opens in Blender, the Windows 3D Viewer or online glTF viewers. Labels and the floor holes cut by Empty boxes are not included, because glTF can't store them.
+- **Import**: accepts a full backup (.zip), which replaces everything after copying the current data to `/data/backups/`, or a rooms & walls file (.json).
 
 It runs as **one Docker container** (Python standard library plus static files, with no external services) on port **8080**, and stores all maps in **`/data`**.
 
@@ -87,7 +95,9 @@ git tag v1.2.3 && git push origin v1.2.3     # publishes :1.2.3 and :1.2
 ```
 /data
 ├── floors.json        floors: name, height, position/size in metres, plan image
-├── rooms.json         boxes: floor, type (room/walkway/stair/elevator/empty), number, name, box in metres
+├── rooms.json         boxes: floor, type (room/bathroom/walkway/stair/elevator/empty), number, name, box in metres
+│                      walls: floor, start/end point and thickness in metres
+├── backups/           copies of the data taken automatically before a backup is imported
 ├── plans/             uploaded floor plan images
 └── *.bak.json         the previous version of each file, rewritten on every save
 ```

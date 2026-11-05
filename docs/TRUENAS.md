@@ -187,7 +187,7 @@ All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick a
    ```bash
    sudo tar czf /mnt/<POOL>/backups/waypoint-$(date +%F).tar.gz -C /mnt/<POOL>/apps/waypoint data
    ```
-4. **Export** in the app downloads the rooms as JSON. It does **not** include the plan images, so use it as an extra copy, not a full backup.
+4. **From the app:** **Export ▾ → Full backup (.zip)** downloads floors, plan images, rooms and walls in one file. You can restore it on any Waypoint server with **Import**. Before it replaces anything, the import copies the current data to `/data/backups/pre-import-<time>/`. (**Rooms & walls (.json)** does not include the plan images.)
 
 ## Restoring
 
@@ -201,6 +201,8 @@ All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick a
      sudo tar xzf /mnt/<POOL>/backups/waypoint-YYYY-MM-DD.tar.gz -C /mnt/<POOL>/apps/waypoint
      ```
    - **Only the last save:** `sudo cp data/rooms.bak.json data/rooms.json`
+   - **From a backup .zip:** you don't need to stop the app. Use **Import** in the app and choose the .zip.
+   - **Undo an import:** copy the files back from `data/backups/pre-import-<time>/`.
 3. Fix ownership: `sudo chown -R 568:568 /mnt/<POOL>/apps/waypoint/data`
 4. **Start** the app again and reload the page.
 
