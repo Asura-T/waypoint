@@ -197,6 +197,8 @@
       <kbd>V</kbd> select · <kbd>1</kbd>–<kbd>8</kbd> box types · <kbd>W</kbd> wall · <kbd>H</kbd> pan · <kbd>A</kbd> align · <kbd>F</kbd> fit<br>
       <kbd>Del</kbd> delete · <kbd>Esc</kbd> cancel / deselect · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · scroll = zoom · right-drag or <kbd>Space</kbd>+drag = pan<br>
       <b>Right-click</b> any wall or box to select it, whatever tool is active. Walls are also listed below the boxes.<br>
+      <b>Resize:</b> with Select, drag any box's edge or corner. Corner shapes: drag a corner dot or a whole side; drag the <b>＋</b> on a side to add a corner; double-click a corner to remove it.<br>
+      Arrow keys move the selected box or wall by 0.1 m (<kbd>Shift</kbd> = 1 m); <kbd>Ctrl</kbd>+arrows resize a box. The size shows while you drag.<br>
       Edges snap to nearby boxes and walls; hold <kbd>Alt</kbd> to stop snapping.<br>
       <b>Walkways, gardens and balconies</b> that touch join into one connected area.
       <b>Empty</b> cuts a hole in the floor and shows what it opens onto below (for example a garden on GF).
@@ -332,7 +334,6 @@ if (MAP) try {
   if (r.status === 404) { location.hash = '#/'; }
   if (!r.ok) throw 0;
   ({map: mapMeta, floors, rooms, walls = []} = await r.json());
-  rev = mapMeta.rev || 0;
 } catch { serverOK = false; }
 const sortFloors = () => floors.sort((a,b) => a.elev - b.elev);
 sortFloors();
@@ -355,7 +356,7 @@ let saveTimer = null;
 function setStatus(t, bad=false){ $('status').textContent = t; $('status').classList.toggle('bad', bad); }
 // every save says which revision of the map it builds on; if the map changed somewhere else in the meantime
 // (another tab, another person, an automatic fill) the server refuses it and this page reloads the latest version
-let rev = 0, saving = Promise.resolve();
+let rev = mapMeta.rev || 0, saving = Promise.resolve();   // revision this page was loaded at
 const savePayload = () => ({version:1, rooms, walls});
 function staleMap(){
   setStatus('This map was changed elsewhere', true);
@@ -638,6 +639,9 @@ function loadImg(fi){
 }
 let view = {s:6, ox:0, oy:0};      // screen px per metre + offset
 const toScr = (x,y) => [x*view.s + view.ox, y*view.s + view.oy];
+// pointer position inside the canvas in CSS pixels. Computed from clientX/Y and the canvas box, because
+// e.offsetX/offsetY are wrong when the page is zoomed or scaled (browser zoom, embedded previews)
+function ptr(e){ const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) * cv.clientWidth / rc.width, (e.clientY - rc.top) * cv.clientHeight / rc.height]; }
 const toW = (sx,sy) => [(sx - view.ox)/view.s, (sy - view.oy)/view.s];
 function resize(){ const d = devicePixelRatio||1; cv.width = Math.round(cv.clientWidth*d); cv.height = Math.round(cv.clientHeight*d); ctx.setTransform(d,0,0,d,0,0); draw(); }
 function fit(){
@@ -798,8 +802,18 @@ function draw(){
   const sr = selId && list.find(r => r.id === selId);
   if (sr) {
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffd23f'; ctx.beginPath(); pathOf(sr); ctx.stroke();
-    handles(sr).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.5;
-      if (sr.pts) { ctx.beginPath(); ctx.arc(p,q,6,0,7); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(p-5,q-5,10,10); ctx.strokeRect(p-5,q-5,10,10); } });
+    handles(sr).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=2;
+      if (sr.pts) { ctx.beginPath(); ctx.arc(p,q,7,0,7); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(p-6,q-6,12,12); ctx.strokeRect(p-6,q-6,12,12); } });
+    if (sr.pts && !drag) midpoints(sr).forEach(([hx,hy]) => {            // + in the middle of each side: drag it to add a corner
+      const [p,q] = toScr(hx,hy); ctx.beginPath(); ctx.arc(p,q,6,0,7); ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fill(); ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p-3,q); ctx.lineTo(p+3,q); ctx.moveTo(p,q-3); ctx.lineTo(p,q+3); ctx.stroke(); });
+  }
+  if (drag && drag.r && ['new','resize','move','vertex','side'].includes(drag.kind) && !exporting) {   // live size
+    const r = drag.r, [a,b,w,h] = scrRect(r);
+    const txt = r.pts ? `${boxArea(r).toFixed(1)} m²` : `${(r.x1-r.x0).toFixed(2)} × ${(r.y1-r.y0).toFixed(2)} m`;
+    ctx.font = '600 13px system-ui'; const tw = ctx.measureText(txt).width + 14, x = a + w/2 - tw/2, y = b + h + 8 > H - 26 ? b - 30 : b + h + 8;
+    ctx.fillStyle = 'rgba(23,26,33,.92)'; ctx.beginPath(); ctx.roundRect(x, y, tw, 22, 6); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, a + w/2, y + 11);
   }
   if (drag && drag.guides) {                             // snap guides
     ctx.setLineDash([4,4]); ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 1; ctx.beginPath();
@@ -826,25 +840,45 @@ const HN = ['nw','n','ne','e','se','s','sw','w'];
 function handles(r){ if (r.pts) return r.pts; const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
   return [[r.x0,r.y0],[mx,r.y0],[r.x1,r.y0],[r.x1,my],[r.x1,r.y1],[mx,r.y1],[r.x0,r.y1],[r.x0,my]]; }
 const CURSOR = {nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize'};
-function hitHandle(sx,sy){
-  const r = selId && byId(selId); if (!r || !floors[cur] || r.floor !== floors[cur].id) return null;
-  const k = handles(r).findIndex(([hx,hy]) => { const [p,q] = toScr(hx,hy); return Math.abs(p-sx) < 9 && Math.abs(q-sy) < 9; });
-  if (k >= 0) return r.pts ? 'v' + k : HN[k];                // corner-drawn shape: drag a corner dot
-  if (r.pts) return null;
-  // anywhere along an edge of the selected box also resizes
-  const [a,b,w,h] = scrRect(r), inX = sx > a && sx < a+w, inY = sy > b && sy < b+h;
-  if (inY && Math.abs(sx-a) < 6) return 'w'; if (inY && Math.abs(sx-a-w) < 6) return 'e';
-  if (inX && Math.abs(sy-b) < 6) return 'n'; if (inX && Math.abs(sy-b-h) < 6) return 's';
+const midpoints = r => r.pts.map(([x,y], i) => { const [u,v] = r.pts[(i+1) % r.pts.length]; return [(x+u)/2, (y+v)/2]; });
+// what part of box r is under the pointer: corner/side handles of a box, or for a corner-drawn shape
+// 'v<k>' corner dot, 'm<k>' the + in the middle of side k (adds a corner), 'e<k>' side k itself
+function boxHandleAt(r, sx, sy, near = 10){
+  const close = ([x,y], d) => { const [p,q] = toScr(x,y); return Math.hypot(p-sx, q-sy) < d; };
+  if (r.pts) {
+    let k = r.pts.findIndex(p => close(p, near)); if (k >= 0) return 'v' + k;
+    k = midpoints(r).findIndex(p => close(p, near - 1)); if (k >= 0) return 'm' + k;
+    k = r.pts.findIndex(([x,y], i) => { const [u,v] = r.pts[(i+1) % r.pts.length]; return segDist(sx, sy, {x0:x, y0:y, x1:u, y1:v}) < 7; });
+    return k >= 0 ? 'e' + k : null;
+  }
+  const k = handles(r).findIndex(p => close(p, near)); if (k >= 0) return HN[k];
+  const [a,b,w,h] = scrRect(r), inX = sx > a-2 && sx < a+w+2, inY = sy > b-2 && sy < b+h+2;
+  if (inY && Math.abs(sx-a) < 7) return 'w'; if (inY && Math.abs(sx-a-w) < 7) return 'e';
+  if (inX && Math.abs(sy-b) < 7) return 'n'; if (inX && Math.abs(sy-b-h) < 7) return 's';
   return null;
 }
+function hitHandle(sx,sy){
+  const r = selId && byId(selId); if (!r || !floors[cur] || r.floor !== floors[cur].id) return null;
+  return boxHandleAt(r, sx, sy, 11);
+}
+// with Select, the edge or corner of ANY box can be grabbed directly (smallest box first)
+function hitAnyEdge(sx,sy){
+  // when boxes share an edge, take the one the pointer is inside (you grab an edge from the inside), then the smaller one
+  const [wx, wy] = toW(sx, sy);
+  const found = floorRooms(cur).filter(r => !r.pts).map(r => ({r, h: boxHandleAt(r, sx, sy, 9)})).filter(o => o.h);
+  found.sort((a, b) => (inside(b.r, wx, wy) - inside(a.r, wx, wy)) || boxArea(a.r) - boxArea(b.r));
+  return found[0] || null;
+}
+const cursorFor = h => !h ? null : h[0] === 'v' || h[0] === 'm' ? 'grab' : h[0] === 'e' && h.length > 1 ? 'move' : CURSOR[h];
 function hitRoom(wx,wy){
   const fr = floorRooms(cur);
   // smallest box under the cursor wins, so rooms drawn inside larger areas stay clickable
   return fr.filter(r => inside(r, wx, wy)).sort((a,b) => boxArea(a) - boxArea(b))[0];
 }
 // snapping: pull a moving edge onto a nearby edge of another box on this floor
+const SNAP_PX = 6;              // snapping never moves a point further than this many screen pixels from the pointer
 function snapAxis(v, ax, skipId, guides){
-  const lim = 8 / view.s; let best = null;
+  const lim = SNAP_PX / view.s; let best = null;
   for (const o of [...floorRooms(cur), ...floorWalls(cur)]) {
     if (o.id === skipId) continue;
     for (const e of [o[ax+'0'], o[ax+'1']]) if (Math.abs(e - v) < lim && (best === null || Math.abs(e - v) < Math.abs(best - v))) best = e;
@@ -870,15 +904,15 @@ function hitWallEnd(sx,sy){
   return null;
 }
 function snapPoint(x, y, skipId, from, free){
-  const lim = 10 / view.s, g = {x:[], y:[]};
+  const lim = (SNAP_PX + 2) / view.s, g = {x:[], y:[]};
   let best = null, bd = lim;
   for (const w of floorWalls(cur)) { if (w.id === skipId) continue;
     for (const end of [0,1]) { const d = Math.hypot(w['x'+end]-x, w['y'+end]-y); if (d < bd) { bd = d; best = [w['x'+end], w['y'+end]]; } } }
   for (const r of floorRooms(cur)) for (const [cx,cy] of cornersOf(r)) { const d = Math.hypot(cx-x, cy-y); if (d < bd) { bd = d; best = [cx,cy]; } }
   if (best) return {x:best[0], y:best[1], guides:g, pt:best};
-  if (from && !free) {                                   // keep walls straight: lock to horizontal / vertical near 0° / 90°
-    const ang = Math.abs(Math.atan2(y - from[1], x - from[0])) * 180/Math.PI;
-    if (ang < 8 || ang > 172) y = from[1]; else if (Math.abs(ang - 90) < 8) x = from[0];
+  if (from && !free) {                                   // straighten only when the pointer is already within a few pixels of straight
+    if (Math.abs(y - from[1]) * view.s < SNAP_PX) { y = from[1]; g.y.push(y); }
+    else if (Math.abs(x - from[0]) * view.s < SNAP_PX) { x = from[0]; g.x.push(x); }
   }
   return {x: snapAxis(x,'x',skipId,g), y: snapAxis(y,'y',skipId,g), guides:g, pt:null};
 }
@@ -896,7 +930,7 @@ function cornerPoint(wx, wy, e){
   if (e.altKey) return {x:wx, y:wy, pt:null};
   const sp = snapPoint(wx, wy, null, prev, e.shiftKey);
   if (!sp.pt && poly && !e.shiftKey) {                   // also line up with earlier dots of this shape, so it closes square
-    const lim = 8 / view.s;
+    const lim = SNAP_PX / view.s;
     for (const [px,py] of poly.pts.slice(0, -1)) { if (Math.abs(px - sp.x) < lim) sp.x = px; if (Math.abs(py - sp.y) < lim) sp.y = py; }
   }
   return sp;
@@ -909,7 +943,7 @@ function cornerMove(wx, wy, sx, sy, e){
 }
 function cornerClick(wx, wy, e){
   if (!poly) { poly = {kind: tool === 'wall' ? 'wall' : 'box', pts: []}; selId = selWall = null; refreshUI(); }
-  if (nearFirst(e.offsetX, e.offsetY) && poly.pts.length >= (poly.kind === 'box' ? 3 : 2)) return finishCorners(true);
+  if (nearFirst(...ptr(e)) && poly.pts.length >= (poly.kind === 'box' ? 3 : 2)) return finishCorners(true);
   const sp = cornerPoint(wx, wy, e), last = poly.pts[poly.pts.length-1];
   if (last && Math.hypot(last[0]-sp.x, last[1]-sp.y)*view.s < 4) return;          // second click of a double-click
   poly.pts.push([sp.x, sp.y]); draw();
@@ -960,7 +994,11 @@ function drawCorners(){
     }
   }
 }
-cv.addEventListener('dblclick', () => { if (poly) finishCorners(poly.kind === 'box'); });
+cv.addEventListener('dblclick', e => {
+  if (poly) return finishCorners(poly.kind === 'box');
+  const r = selId && byId(selId), h = r && r.pts && hitHandle(...ptr(e));
+  if (h && h[0] === 'v' && r.pts.length > 3) { snapshot(); r.pts.splice(+h.slice(1), 1); syncBox(r); afterChange(); toast('Corner removed.'); }
+});
 cv.addEventListener('pointerleave', () => { if (cornerHover) { cornerHover = null; draw(); } });
 // tool palette: Select, one button per box type, Wall, Pan
 function renderPalette(){
@@ -997,14 +1035,14 @@ $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function cancelDrag(){
   const d = drag; if (!d) return; drag = null;
-  if ((d.kind === 'move' || d.kind === 'resize' || d.kind === 'vertex') && d.moved) { Object.assign(d.r, d.orig); undoStack.pop(); }
+  if (['move','resize','vertex','side','midpoint'].includes(d.kind) && d.moved) { Object.assign(d.r, structuredClone(d.before || d.orig)); undoStack.pop(); }
   if ((d.kind === 'wallEnd' || d.kind === 'moveWall') && d.moved) { Object.assign(d.w, d.orig); undoStack.pop(); }
   setTool(tool); draw();
 }
 cv.addEventListener('pointerdown', e => {
   if (drag && drag.kind !== 'pan' && e.button === 2) { cancelDrag(); return; }   // right-click while drawing = cancel
-  cv.setPointerCapture(e.pointerId);
-  const sx = e.offsetX, sy = e.offsetY, [wx,wy] = toW(sx,sy);
+  try { cv.setPointerCapture(e.pointerId); } catch {}
+  const [sx, sy] = ptr(e), [wx,wy] = toW(sx,sy);
   if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy, right: e.button === 2}; cv.style.cursor='grabbing'; return; }
   if (!floors[cur]) return;
   if (align) { drag = {kind:'align', sx, sy, dx0:align.dx, dy0:align.dy}; cv.style.cursor = 'grabbing'; return; }
@@ -1021,8 +1059,11 @@ cv.addEventListener('pointerdown', e => {
     draw(); return;
   }
   const h = hitHandle(sx,sy);
-  if (h) { const r = byId(selId); drag = {kind: h[0] === 'v' ? 'vertex' : 'resize', h, r, orig:structuredClone(r), moved:false}; return; }
+  if (h) { const r = byId(selId), kind = r.pts ? {v:'vertex', m:'midpoint', e:'side'}[h[0]] : 'resize';
+    drag = {kind, h, r, wx, wy, orig:structuredClone(r), moved:false}; return; }
   if (tool === 'select') {                               // Select: click picks, drag moves, drag on empty space pans
+    const ae = !hw && hitAnyEdge(sx,sy);
+    if (ae) { selectRoom(ae.r.id); drag = {kind:'resize', h:ae.h, r:ae.r, orig:structuredClone(ae.r), moved:false}; return; }
     if (hw) { selectWall(hw.id); drag = {kind:'moveWall', w:hw, wx, wy, orig:{...hw}, moved:false}; return; }
     const r = hitRoom(wx,wy);
     if (r) { selectRoom(r.id); drag = {kind:'move', r, wx, wy, orig:structuredClone(r), moved:false}; return; }
@@ -1037,7 +1078,7 @@ cv.addEventListener('pointerdown', e => {
   draw();
 });
 cv.addEventListener('pointermove', e => {
-  const sx = e.offsetX, sy = e.offsetY; let [wx,wy] = toW(sx,sy);
+  const [sx, sy] = ptr(e); let [wx,wy] = toW(sx,sy);
   if (!drag && shapeMode === 'corners' && (tool === 'draw' || tool === 'wall') && !space) { cornerMove(wx, wy, sx, sy, e); return; }
   if (!drag) {
     if (space || tool==='pan') return;
@@ -1045,11 +1086,12 @@ cv.addEventListener('pointermove', e => {
     if (tool !== 'wall' && hitWallEnd(sx,sy)) { cv.style.cursor = 'grab'; return; }
     const hw = hitWall(sx,sy);
     if (tool === 'wall') { cv.style.cursor = 'crosshair'; return; }
-    if (tool === 'select') { const hh = hitHandle(sx,sy); cv.style.cursor = hh ? CURSOR[hh] || 'grab' : hitWall(sx,sy) || hitRoom(wx,wy) ? 'move' : 'grab'; return; }
+    if (tool === 'select') { const hh = hitHandle(sx,sy) || (!hitWall(sx,sy) && hitAnyEdge(sx,sy)?.h);
+      cv.style.cursor = hh ? cursorFor(hh) : hitWall(sx,sy) || hitRoom(wx,wy) ? 'move' : 'grab'; return; }
     if (hw) { cv.style.cursor = hw.id === selWall ? 'move' : 'pointer'; return; }
     const h = hitHandle(sx,sy), sel = selId && byId(selId);
     const onSel = sel && sel.floor === floors[cur]?.id && inside(sel, wx, wy);
-    cv.style.cursor = h ? CURSOR[h] || 'grab' : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
+    cv.style.cursor = h ? cursorFor(h) : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
   }
   if (drag.kind === 'pan') { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; draw(); return; }
   if (drag.kind === 'align') { align.dx = drag.dx0 + (sx-drag.sx)/view.s; align.dy = drag.dy0 + (sy-drag.sy)/view.s; applyAlign(); draw(); return; }
@@ -1087,6 +1129,12 @@ cv.addEventListener('pointermove', e => {
     }
     r.x0=o.x0+dx; r.x1=o.x1+dx; r.y0=o.y0+dy; r.y1=o.y1+dy;
     if (o.pts) r.pts = o.pts.map(([x,y]) => [x+dx, y+dy]);
+  } else if (drag.kind === 'midpoint') {                 // first move turns the + into a new corner, then drag it
+    const k = +drag.h.slice(1), pts = o.pts.slice(); pts.splice(k+1, 0, midpoints(o)[k]);
+    drag.before = drag.before || o; drag.orig = {...o, pts}; drag.kind = 'vertex'; drag.h = 'v' + (k+1); r.pts = pts.map(p => p.slice()); draw(); return;
+  } else if (drag.kind === 'side') {                      // move one side of a shape: both its corners together
+    const k = +drag.h.slice(1), n = o.pts.length, dx = wx - drag.wx, dy = wy - drag.wy;
+    r.pts = o.pts.map((p, i) => i === k || i === (k+1) % n ? [p[0]+dx, p[1]+dy] : p); syncBox(r);
   } else if (drag.kind === 'vertex') {
     const k = +drag.h.slice(1), n = o.pts.length;
     const sp = e.altKey ? {x:wx, y:wy, pt:null} : snapPoint(wx, wy, r.id, o.pts[(k-1+n) % n], e.shiftKey);
@@ -1102,8 +1150,9 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', e => {
   const d = drag; drag = null; if (!d) return;
-  if (d.kind === 'pan' && d.right && Math.hypot(e.offsetX - d.sx, e.offsetY - d.sy) < 4) {   // right-click: select what's under it
-    const [wx, wy] = toW(e.offsetX, e.offsetY), hw = hitWall(e.offsetX, e.offsetY), r = hw ? null : hitRoom(wx, wy);
+  const [ux, uy] = ptr(e);
+  if (d.kind === 'pan' && d.right && Math.hypot(ux - d.sx, uy - d.sy) < 4) {   // right-click: select what's under it
+    const [wx, wy] = toW(ux, uy), hw = hitWall(ux, uy), r = hw ? null : hitRoom(wx, wy);
     if (poly) { poly = null; }                           // right-click also abandons a half-placed corner shape
     if (hw) selectWall(hw.id); else if (r) selectRoom(r.id); else { selId = selWall = null; refreshUI(); }
     setTool(tool); draw(); return;
@@ -1134,7 +1183,7 @@ const round = r => { if (r.pts) { r.pts = orient(r.pts.map(([x,y]) => [Math.roun
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
-  view.ox = e.offsetX - (e.offsetX - view.ox)*f; view.oy = e.offsetY - (e.offsetY - view.oy)*f; view.s = s; draw();
+  const [px, py] = ptr(e); view.ox = px - (px - view.ox)*f; view.oy = py - (py - view.oy)*f; view.s = s; draw();
 }, {passive:false});
 addEventListener('keydown', e => {
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
@@ -1154,6 +1203,16 @@ addEventListener('keydown', e => {
     if (e.key === 'Enter') { finishCorners(poly.kind === 'box'); e.preventDefault(); return; }
     if (e.key === 'Escape') { poly = null; draw(); return; }
     if (e.key === 'Backspace' || e.key === 'Delete') { poly.pts.pop(); if (!poly.pts.length) poly = null; draw(); e.preventDefault(); return; }
+  }
+  if (e.key.startsWith('Arrow') && (selId || selWall)) {
+    const st = e.shiftKey ? 1 : 0.1, dx = {ArrowLeft:-st, ArrowRight:st}[e.key] || 0, dy = {ArrowUp:-st, ArrowDown:st}[e.key] || 0;
+    const r = selId && byId(selId), w = selWall && wallById(selWall);
+    snapshot();
+    if (r && (e.ctrlKey || e.metaKey) && !r.pts) { r.x1 = Math.max(r.x0 + 0.3, r.x1 + dx); r.y1 = Math.max(r.y0 + 0.3, r.y1 + dy); }   // grow / shrink
+    else if (r) { r.x0 += dx; r.x1 += dx; r.y0 += dy; r.y1 += dy; if (r.pts) r.pts = r.pts.map(([x,y]) => [x+dx, y+dy]); }
+    else if (w) { w.x0 += dx; w.x1 += dx; w.y0 += dy; w.y1 += dy; }
+    if (r) round(r); if (w) roundW(w);
+    afterChange(); e.preventDefault(); return;
   }
   if (e.key === 'c') { setShape(shapeMode === 'box' ? 'corners' : 'box'); return; }
   if (e.key === 'a') { startAlign(); return; }
@@ -1577,9 +1636,9 @@ function updateHint(){
   const sr = selId && byId(selId), sw = selWall && wallById(selWall);
   if (mode !== '2d' || !floors[cur] || align || sr || sw) { h.style.display = 'none'; return; }   // the edit card says it all
   let t;
-  if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> · edit it in the card · drag to move · drag edges to resize · <b>Del</b> deletes · <b>Esc</b> closes`;
+  if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> · drag to move · drag edges/corners to resize · arrows nudge · <b>Del</b> deletes · <b>Esc</b> closes`;
   else if (sw) t = `<b>Wall</b> · drag it or its round ends · thickness in the card · <b>Del</b> deletes · <b>Esc</b> closes`;
-  else if (tool === 'select') t = `<b>Select</b> · click a box or wall to edit it · drag to move · drag empty space to pan · pick a type on the left to draw`;
+  else if (tool === 'select') t = `<b>Select</b> · click a box or wall to edit it · drag a box's edge or corner to resize it · drag inside to move · drag empty space to pan`;
   else if (shapeMode === 'corners' && (tool === 'draw' || tool === 'wall'))
     t = `<b>Click corners${tool === 'wall' ? ' · walls' : ' · ' + esc(TYPES[drawType].label.toLowerCase())}</b> · click a dot on each corner · click the first dot (or <b>Enter</b> / double-click) to finish · <b>Backspace</b> removes the last dot · <b>Esc</b> cancels · <b>right-click</b> a wall or box to edit it · <b>Alt</b> = no snapping`;
   else if (tool === 'wall') t = `<b>Wall</b> · drag from one end to the other · start on a wall's end to continue it · <b>Shift</b> any angle · <b>right-click</b> a wall to edit or delete it`;

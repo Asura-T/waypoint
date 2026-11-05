@@ -250,6 +250,8 @@ function resize3d(){ const w = el.clientWidth, h = el.clientHeight; if (!w) retu
 const cv = $('cv'), ctx = cv.getContext('2d'), imgs = {};
 let view = {s:6, ox:0, oy:0}, pan = null;
 const toScr = (x,y) => [x*view.s + view.ox, y*view.s + view.oy], toW = (sx,sy) => [(sx-view.ox)/view.s, (sy-view.oy)/view.s];
+// pointer position in the canvas from client coordinates (offsetX/Y are wrong under page zoom or scaling)
+const ptr = e => { const rc = cv.getBoundingClientRect(); return [(e.clientX-rc.left)*cv.clientWidth/rc.width, (e.clientY-rc.top)*cv.clientHeight/rc.height]; };
 function img(f){ if (!D.plans[f.id]) return null; if (!imgs[f.id]) { const im = new Image(); im.onload = draw2d; im.src = D.plans[f.id]; imgs[f.id] = im; } return imgs[f.id]; }
 function resize2d(){ const d = devicePixelRatio || 1; cv.width = Math.round(cv.clientWidth*d); cv.height = Math.round(cv.clientHeight*d); ctx.setTransform(d,0,0,d,0,0); draw2d(); }
 function fit2d(){ const [x0,y0,x1,y1] = floors[cur].extent, W = cv.clientWidth, Hh = cv.clientHeight;
@@ -291,17 +293,18 @@ function inside(r, x, y){
   if (!(x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)) return false; if (!r.pts) return true;
   let c = false; for (let i = 0, j = r.pts.length-1; i < r.pts.length; j = i++) { const [xi,yi] = r.pts[i], [xj,yj] = r.pts[j]; if ((yi > y) !== (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) c = !c; } return c;
 }
-cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pan = {sx:e.offsetX, sy:e.offsetY, ox:view.ox, oy:view.oy}; });
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); const [px,py] = ptr(e); pan = {sx:px, sy:py, ox:view.ox, oy:view.oy}; });
 cv.addEventListener('pointermove', e => {
-  if (pan) { view.ox = pan.ox + e.offsetX - pan.sx; view.oy = pan.oy + e.offsetY - pan.sy; draw2d(); return; }
-  const [x,y] = toW(e.offsetX, e.offsetY), f = floors[cur];
+  const [px, py] = ptr(e);
+  if (pan) { view.ox = pan.ox + px - pan.sx; view.oy = pan.oy + py - pan.sy; draw2d(); return; }
+  const [x,y] = toW(px, py), f = floors[cur];
   const r = rooms.filter(r => r.floor === f.id && inside(r, x, y)).sort((a,b) => area(a) - area(b))[0];
   showTip(e, r, 'room', cur);
 });
 cv.addEventListener('pointerup', () => pan = null);
 cv.addEventListener('pointerleave', () => tip.style.display = 'none');
 cv.addEventListener('wheel', e => { e.preventDefault(); const k = Math.exp(-e.deltaY*(e.ctrlKey ? .01 : .0015)), s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
-  view.ox = e.offsetX - (e.offsetX-view.ox)*f; view.oy = e.offsetY - (e.offsetY-view.oy)*f; view.s = s; draw2d(); }, {passive:false});
+  const [px, py] = ptr(e); view.ox = px - (px-view.ox)*f; view.oy = py - (py-view.oy)*f; view.s = s; draw2d(); }, {passive:false});
 
 // ---------- modes, search focus ----------
 function setMode(m){
