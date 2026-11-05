@@ -39,6 +39,9 @@ Keep as many **maps** as you like (one per building or site). For each floor you
   - **2D floor image (.png)**: the current floor at the plan's full resolution.
   - **3D view image (.png)**: exactly what the 3D camera shows.
   - **3D model (.glb)**: the floors shown in the 3D view (pick **All** for the whole building). Opens in Blender, the Windows 3D Viewer or online glTF viewers. Labels and the floor holes cut by Empty boxes are not included, because glTF can't store them.
+- **View-only web page** (**Export ▾ → View-only web page**): one `.html` file with the plans, rooms and 3D engine inside. It opens in any browser, even offline and without the server. Tick which floors to show in 3D, open any floor flat in 2D, search for a room, and hover for details. It can't be edited. **Open view-only page** shows the same page in a new tab.
+- **Safe saving**: every save carries the map's revision. If the map was changed somewhere else since the page loaded (another tab, another person, an import), the save is refused and the page reloads, instead of overwriting the newer work.
+- **Auto-drawn boxes** (marked *auto*, dashed amber outline): proposals to check. **Check next ▸** walks through them, **✓ Looks right** confirms one, and **All look right** confirms a whole floor.
 - **Import**: accepts a full backup (.zip), which replaces everything after copying the current data to `/data/backups/`, or a rooms & walls file (.json).
 
 It runs as **one Docker container** (Python standard library plus static files, with no external services) on port **8080**, and stores all maps in **`/data`**.

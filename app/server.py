@@ -34,12 +34,15 @@ API (all JSON unless noted):
   POST   /api/maps/<id>/duplicate           copy {name} -> {id}
   PUT    /api/maps/<id>/rooms               replace rooms (and walls, when "walls" is sent)
   PUT    /api/maps/<id>/floors              replace the floor list
+                                            both need {"rev": n} = the map's current revision (from GET);
+                                            otherwise 409 {"error", "rev"}; success returns the new "rev"
   POST   /api/maps/<id>/plans/<floorId>     upload a plan image (raw PNG/JPEG/WebP) -> {"plan": "plans/<file>"}
   GET    /api/maps/<id>/export              the whole map as one .zip
+  GET    /api/maps/<id>/viewer[?download=1] view-only web page with everything embedded (one .html file)
   POST   /api/maps/<id>/import              replace this map with a backup .zip (old version kept in backups/)
   GET    /files/<mapId>/plans/<file>        plan image
 """
-import io, json, os, re, shutil, signal, sys, threading, time, zipfile
+import base64, io, json, os, re, shutil, signal, sys, threading, time, zipfile
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -88,10 +91,27 @@ def write_json(path, obj):
 
 
 def touch(mid):
+    """Mark the map as changed: new 'updated' time and the next revision number."""
     p = os.path.join(map_dir(mid), 'map.json')
     meta = read_json(p, {'id': mid, 'name': mid, 'created': now()})
     meta['updated'] = now()
+    meta['rev'] = int(meta.get('rev', 0)) + 1
     write_json(p, meta)
+    return meta['rev']
+
+
+def check_rev(d, data):
+    """Saves must say which revision they were made from; an out-of-date page is refused instead of
+    silently overwriting newer work (another tab, another person, or an automatic fill)."""
+    current = int(read_json(os.path.join(d, 'map.json'), {}).get('rev', 0))
+    if data.get('rev') != current:
+        raise Conflict(current)
+
+
+class Conflict(Exception):
+    def __init__(self, rev):
+        super().__init__('this map was changed elsewhere; reload the page to get the latest version')
+        self.rev = rev
 
 
 def new_map_id(name):
@@ -224,6 +244,35 @@ def export_zip(mid):
     return buf.getvalue(), meta.get('name', mid)
 
 
+def build_viewer(mid):
+    """One self-contained, view-only HTML page: map data, plan images and the 3D engine inlined."""
+    d = map_dir(mid)
+    meta = read_json(os.path.join(d, 'map.json'), {'name': mid})
+    floors = read_json(os.path.join(d, 'floors.json'), {'floors': []})['floors']
+    rd = read_json(os.path.join(d, 'rooms.json'), {'rooms': []})
+    plans = {}
+    for f in floors:
+        path = os.path.join(d, f.get('plan') or '-')
+        if f.get('plan') and os.path.isfile(path):
+            ext = path.rsplit('.', 1)[-1].lower()
+            with open(path, 'rb') as fh:
+                plans[f['id']] = f'data:image/{"jpeg" if ext == "jpg" else ext};base64,' + base64.b64encode(fh.read()).decode()
+    data = {'name': meta.get('name', mid), 'floors': [{k: v for k, v in f.items() if k != 'plan'} for f in floors],
+            'rooms': [{k: v for k, v in r.items() if k != 'auto'} for r in rd.get('rooms', [])], 'walls': rd.get('walls', []), 'plans': plans}
+    vendor = os.path.join(STATIC, 'vendor', 'three')
+    with open(os.path.join(APP_DIR, 'viewer_template.html'), encoding='utf-8') as fh:
+        html = fh.read()
+    with open(os.path.join(vendor, 'three.module.js'), encoding='utf-8') as fh:
+        three = fh.read()
+    with open(os.path.join(vendor, 'addons', 'controls', 'OrbitControls.js'), encoding='utf-8') as fh:
+        orbit = fh.read()
+    # nothing inside may close the <script> it sits in: '<\\/' is the same string in JSON; code only needs '</script'
+    as_json = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
+    code = lambda t: re.sub(r'</(script)', lambda m: '<\\/' + m.group(1), t, flags=re.I)
+    return (html.replace('__WAYPOINT_DATA__', as_json)
+                .replace('__THREE_SRC__', code(three)).replace('__ORBIT_SRC__', code(orbit))), meta.get('name', mid)
+
+
 def read_backup(raw):
     """Validate a backup zip completely; returns (floors, rooms, walls, plans{name: bytes}, name)."""
     try:
@@ -334,12 +383,14 @@ class Handler(SimpleHTTPRequestHandler):
             return fn()
         except LookupError as e:
             return self._json(404, {'error': str(e)})
+        except Conflict as e:
+            return self._json(409, {'error': str(e), 'rev': e.rev})
         except (ValueError, KeyError, TypeError, AttributeError, json.JSONDecodeError) as e:
             return self._json(400, {'error': str(e)})
 
     # ---------- GET ----------
     def do_GET(self):
-        parts, _ = self._route()
+        parts, q = self._route()
         if parts[:1] == ['files'] and len(parts) == 4 and parts[2] == 'plans':
             mid, name = parts[1], parts[3]
             if not ID_RE.match(mid) or not FILE_RE.match(name):
@@ -354,9 +405,9 @@ class Handler(SimpleHTTPRequestHandler):
                                cache='max-age=31536000, immutable')        # uploads get a new file name
         if parts[:1] != ['api']:
             return super().do_GET()
-        self._handle(lambda: self._get_api(parts[1:]))
+        self._handle(lambda: self._get_api(parts[1:], q))
 
-    def _get_api(self, p):
+    def _get_api(self, p, q=None):
         if p == ['health']:
             return self._json(200, {'ok': True, 'version': VERSION})
         if p == ['maps']:
@@ -371,6 +422,13 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(200, {'map': read_json(os.path.join(d, 'map.json'), {'id': p[1], 'name': p[1]}),
                                         'floors': read_json(os.path.join(d, 'floors.json'), {'floors': []})['floors'],
                                         'rooms': rd['rooms'], 'walls': rd.get('walls', [])})
+        if len(p) == 3 and p[0] == 'maps' and p[2] == 'viewer':
+            with lock:
+                self._existing(p[1])
+                html, name = build_viewer(p[1])
+            safe = re.sub(r'[^A-Za-z0-9_-]+', '-', name).strip('-') or p[1]
+            fname = f'waypoint-{safe}-viewer-{time.strftime("%Y%m%d")}.html' if (q or {}).get('download') else None
+            return self._bytes(html.encode('utf-8'), 'text/html; charset=utf-8', filename=fname)
         if len(p) == 3 and p[0] == 'maps' and p[2] == 'export':
             with lock:
                 self._existing(p[1])
@@ -402,20 +460,22 @@ class Handler(SimpleHTTPRequestHandler):
             walls = [clean_wall(w) for w in data['walls']] if 'walls' in data else None
             with lock:
                 d = self._existing(p[1])
+                check_rev(d, data)
                 if walls is None:                      # older clients: keep the walls already saved
                     walls = read_json(os.path.join(d, 'rooms.json'), {}).get('walls', [])
                 write_json(os.path.join(d, 'rooms.json'), {'version': 1, 'rooms': rooms, 'walls': walls})
-                touch(p[1])
-            return self._json(200, {'ok': True, 'count': len(rooms), 'walls': len(walls)})
+                rev = touch(p[1])
+            return self._json(200, {'ok': True, 'count': len(rooms), 'walls': len(walls), 'rev': rev})
         if len(p) == 3 and p[0] == 'maps' and p[2] == 'floors':
             floors = [clean_floor(f) for f in data.get('floors', [])]
             if len({f['id'] for f in floors}) != len(floors):
                 raise ValueError('floor ids must be unique')
             with lock:
                 d = self._existing(p[1])
+                check_rev(d, data)
                 write_json(os.path.join(d, 'floors.json'), {'floors': floors})
-                touch(p[1])
-            return self._json(200, {'ok': True, 'count': len(floors)})
+                rev = touch(p[1])
+            return self._json(200, {'ok': True, 'count': len(floors), 'rev': rev})
         raise LookupError('not found')
 
     # ---------- POST ----------

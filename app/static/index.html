@@ -167,6 +167,8 @@
   <div class="grp only2d"><button id="bUndo" title="Undo (Ctrl+Z)">↶</button><button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button></div>
   <div class="sep"></div>
   <div class="grp"><button id="bList" title="Show or hide the list of boxes">☰ List</button><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
+      <button data-x="viewer"><b>View-only web page</b> (.html)<small>one file to share: pick floors, 2D and 3D, no editing</small></button>
+      <button data-x="viewopen"><b>Open view-only page</b><small>in a new tab, to look at it right away</small></button>
       <button data-x="zip"><b>Full backup</b> (.zip)<small>floors, rooms, walls and plan images</small></button>
       <button data-x="json"><b>Rooms &amp; walls</b> (.json)<small>without plan images</small></button>
       <button data-x="png2d"><b>2D floor image</b> (.png)<small>the floor you are looking at</small></button>
@@ -330,6 +332,7 @@ if (MAP) try {
   if (r.status === 404) { location.hash = '#/'; }
   if (!r.ok) throw 0;
   ({map: mapMeta, floors, rooms, walls = []} = await r.json());
+  rev = mapMeta.rev || 0;
 } catch { serverOK = false; }
 const sortFloors = () => floors.sort((a,b) => a.elev - b.elev);
 sortFloors();
@@ -350,17 +353,34 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 // ---------- saving ----------
 let saveTimer = null;
 function setStatus(t, bad=false){ $('status').textContent = t; $('status').classList.toggle('bad', bad); }
+// every save says which revision of the map it builds on; if the map changed somewhere else in the meantime
+// (another tab, another person, an automatic fill) the server refuses it and this page reloads the latest version
+let rev = 0, saving = Promise.resolve();
+const savePayload = () => ({version:1, rooms, walls});
+function staleMap(){
+  setStatus('This map was changed elsewhere', true);
+  if (staleMap.shown) return; staleMap.shown = true;
+  alert('This map was changed somewhere else (another tab, another person, or an automatic fill).\n\nThe page will now reload with the latest version. Your last change was not saved; please redo it.');
+  location.reload();
+}
+function putMap(what, body){                             // saves run one after another, each with the newest rev
+  const run = async () => {
+    const r = await fetch(`${API}/${what}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...body, rev})});
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 409) { staleMap(); throw new Error(j.error); }
+    if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+    rev = j.rev; return j;
+  };
+  return saving = saving.catch(() => {}).then(run);
+}
+const saveNow = () => { clearTimeout(saveTimer); return putMap('rooms', savePayload()).catch(() => {}); };
 function scheduleSave(){
-  const payload = {version:1, rooms, walls};
   if (!serverOK) { setStatus('Not saved — cannot reach the Waypoint server', true); return; }
   setStatus('Saving…');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    try {
-      const r = await fetch(API + '/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-      if (!r.ok) throw 0;
-      setStatus(`Saved · ${rooms.length} boxes · ${walls.length} walls`);
-    } catch { setStatus('Save failed — check the server, then make any change to retry', true); }
+    try { await putMap('rooms', savePayload()); setStatus(`Saved · ${rooms.length} boxes · ${walls.length} walls`); }
+    catch (err) { if (!staleMap.shown) setStatus('Save failed — check the server, then make any change to retry', true); }
   }, 500);
 }
 
@@ -1185,9 +1205,16 @@ async function runExport(kind){
   }
   if (kind === 'zip') {
     if (!serverOK) return toast('Cannot reach the Waypoint server.');
-    clearTimeout(saveTimer); await fetch(API + '/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({version:1, rooms, walls})}).catch(() => {});
+    await saveNow();
     const a = document.createElement('a'); a.href = API + '/export'; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
     return toast('Full backup is downloading.');
+  }
+  if (kind === 'viewer' || kind === 'viewopen') {
+    if (!serverOK) return toast('Cannot reach the Waypoint server.');
+    await saveNow();
+    if (kind === 'viewopen') { window.open(API + '/viewer', '_blank'); return; }
+    const a = document.createElement('a'); a.href = API + '/viewer?download=1'; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
+    return toast('View-only page is downloading. Open it in any browser, even without the server.', 6000);
   }
   if (kind === 'png2d') return exportPng2d();
   if (!floors.length) return toast('Add a floor first.');
@@ -1266,8 +1293,7 @@ $('fSave').onclick = async () => {
   if (draft.some(f => !f.name.trim())) return $('fErr').textContent = 'Every floor needs a name.';
   const keep = new Set(draft.map(f => f.id)), dropped = rooms.filter(r => !keep.has(r.floor));
   try {
-    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:draft})});
-    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+    await putMap('floors', {floors:draft});
   } catch (err) { return $('fErr').textContent = 'Save failed: ' + (err.message || err); }
   const curId = floors[cur]?.id;
   floors = draft; sortFloors();
@@ -1495,8 +1521,7 @@ async function wzFinish(name, elev, ext, scaleMode){
       const j = await r.json(); if (!r.ok) throw new Error(j.error);
       f.plan = j.plan; f.extent = ext;
     }
-    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:next})});
-    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+    await putMap('floors', {floors:next});
     floors = next; sortFloors(); $('dlgWiz').close();
     const fi = floors.findIndex(x => x.id === f.id);
     if (mode !== '2d') await setMode('2d');
@@ -1537,8 +1562,7 @@ async function endAlign(save){
   if (!save) { align.dx = align.dy = 0; align.k = 1; applyAlign(); }
   else {
     floors[align.fi].extent = floors[align.fi].extent.map(v => Math.round(v*1000)/1000);
-    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors})});
-    if (!r.ok) { toast('Could not save the alignment.'); return; }
+    try { await putMap('floors', {floors}); } catch { toast('Could not save the alignment.'); return; }
     undoStack.length = redoStack.length = 0;            // older undo steps would no longer match the moved plan
     scheduleSave(); toast('Alignment saved.');
   }
