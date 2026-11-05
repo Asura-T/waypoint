@@ -86,6 +86,46 @@
   .pop button:hover{background:#2a3040}
   .pop small{display:block;color:var(--muted);font-size:11px}
   #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;z-index:30;display:none;font-size:13px}
+  .brand{background:transparent;border-color:transparent;padding:6px 6px;font-size:15px}
+  .brand small{color:var(--muted);font-size:11px;font-weight:400}
+  header > *{flex:none}
+  #floorTabs{flex:0 1 auto;min-width:90px;overflow-x:auto;scrollbar-width:thin}
+  .mapname{background:transparent;border-color:transparent;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  .mapname:hover,.brand:hover{background:#222733}
+  #hint{position:absolute;left:12px;bottom:12px;max-width:min(640px,70%);background:rgba(23,26,33,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);pointer-events:none}
+  #hint b{color:var(--text)}
+  #alignBar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:6px 8px 6px 12px;z-index:4;font-size:13px}
+  #home{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;display:none;padding:28px max(16px,calc(50vw - 560px))}
+  .home-h{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .home-h h1{margin:0;font-size:26px}
+  .home-h .sub{color:var(--muted)}
+  #maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer}
+  .card:hover{border-color:var(--accent)}
+  .card .th{height:140px;background:#fff center/cover no-repeat;border-bottom:1px solid var(--line)}
+  .card .th.none{background:repeating-linear-gradient(45deg,#1a1e27 0 10px,#1d212b 10px 20px);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  .card .bd{padding:10px 12px;display:flex;gap:8px;align-items:flex-start}
+  .card .bd div{flex:1;min-width:0}
+  .card .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .mt{color:var(--muted);font-size:12px}
+  .card .menu button{padding:2px 8px}
+  .home-steps{margin-top:28px;color:var(--muted);font-size:13px;line-height:1.7;max-width:720px}
+  .home-steps b{color:var(--text)}
+  .steps{display:flex;gap:6px;margin-bottom:12px}
+  .steps span{padding:3px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted);font-size:12px}
+  .steps span.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;margin:6px 0 10px;color:var(--muted)}
+  .drop.over{border-color:var(--accent);background:#17213a}
+  .drop small{display:block;margin-top:6px}
+  .preview{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin:8px 0}
+  .preview canvas{display:block;width:100%;height:auto}
+  .measure canvas{cursor:crosshair;max-height:52vh;object-fit:contain}
+  .pdfpick{display:flex;gap:8px;align-items:center;justify-content:center;margin:6px 0}
+  .opts{display:grid;gap:8px;font-size:13px}
+  .opts select,.opts input[type=number]{background:#11141a;border:1px solid var(--line);border-radius:6px;padding:4px 6px;color:var(--text)}
+  .check{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:4px}
+  #dlgWiz{width:min(860px,96vw)}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   @media (max-width:760px){aside{top:auto;height:40%;width:auto;right:0;border-right:0;border-top:1px solid var(--line)}main{left:0;bottom:40%}}
 </style>
@@ -93,8 +133,11 @@
 </head>
 <body>
 <header>
-  <h1>Waypoint <small id="ver" style="color:var(--muted);font-weight:400;font-size:11px"></small></h1>
+  <button id="bHome" class="brand" title="All maps">◂ <b>Waypoint</b> <small id="ver"></small></button>
+  <button id="bMapName" class="mapname" title="Rename this map"></button>
+  <div class="sep"></div>
   <div class="grp" id="floorTabs"></div>
+  <button id="bAddFloor" title="Add a floor from a PDF or image">＋ Floor</button>
   <div class="sep"></div>
   <div class="grp"><button id="mDraw" class="on">✏️ Draw</button><button id="m3d">🧊 3D view</button></div>
   <div class="sep only2d"></div>
@@ -105,6 +148,7 @@
   </div>
   <div class="sep only2d"></div>
   <div class="grp only2d">
+    <button id="bAlign" title="Line this floor up with the floor below (A)">⇲ Align</button>
     <button id="bFit" title="Fit floor (F)">Fit</button>
     <button id="bUndo" title="Undo (Ctrl+Z)">↶</button>
     <button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
@@ -127,7 +171,7 @@
   </div>
   <div class="sec only2d" id="editSec">
     <h2>Selected box</h2>
-    <div id="editEmpty" class="empty">Pick a type at the top, then drag on the plan to draw a box.</div>
+    <div id="editEmpty" class="empty">Pick a type above, then drag on the plan to draw a box. Use ▬ Wall for walls.</div>
     <div id="editForm" style="display:none">
       <div class="field"><span>Type</span><div class="types" id="iType"></div></div>
       <label class="field"><span id="lNo">Room No. (required)</span><input id="iNo" autocomplete="off" placeholder="e.g. G01"></label>
@@ -164,45 +208,112 @@
 <main>
   <canvas id="cv"></canvas>
   <div id="boxBar"></div>
-  <div id="emptyMain"><div>No floors yet.</div><button class="primary" id="bFirstFloor">Add your first floor…</button></div>
+  <div id="emptyMain">
+    <div style="font-size:18px;color:var(--text)">This map has no floors yet</div>
+    <div>Start with a floor plan: a <b>PDF</b> or an <b>image</b> (PNG, JPG). You draw rooms and walls on top of it.</div>
+    <button class="primary" id="bFirstFloor">＋ Add the first floor</button>
+  </div>
+  <div id="hint"></div>
+  <div id="alignBar"><span id="alignTxt"></span><button id="alignDone" class="primary">Done</button><button id="alignCancel">Cancel</button></div>
   <div id="three"></div>
 </main>
 <div id="tip"></div>
 <div id="toast"></div>
-<div id="banner">Demo data — replace it with your own floors under “Floors…”</div>
+<div id="banner">Demo map — a fictional office to try things out. Make your own from <b>◂ Waypoint</b> → <b>New map</b>.</div>
+
+<section id="home">
+  <div class="home-h">
+    <div><h1>Waypoint</h1><div class="sub">Your maps. Each map is one building with its own floors.</div></div>
+    <div class="grp"><button id="hImport" title="Add a map from a backup .zip">Import map (.zip)</button><button class="primary" id="hNew">＋ New map</button></div>
+    <input id="hImportFile" type="file" accept=".zip,application/zip" hidden>
+  </div>
+  <div id="maps"></div>
+  <div class="home-steps">
+    <b>How it works</b>
+    <ol>
+      <li><b>New map</b>: give the building a name.</li>
+      <li><b>Add a floor</b>: upload the floor plan as a PDF or image, then set the scale by measuring one line you know the length of.</li>
+      <li><b>Draw</b>: drag boxes for rooms, bathrooms, walkways, stairs and lifts, and draw walls with the Wall tool.</li>
+      <li><b>3D view</b>: see all floors stacked. Export images, a 3D model or a full backup any time.</li>
+    </ol>
+  </div>
+</section>
+
+<dialog id="dlgWiz">
+  <div class="dlg-h"><h2 id="wzTitle">Add a floor</h2><button id="wzClose" title="Close">✕</button></div>
+  <div class="dlg-b">
+    <div class="steps"><span data-s="1">1 · Plan</span><span data-s="2">2 · Scale</span></div>
+    <div id="wz1">
+      <div class="row2">
+        <label class="field"><span>Floor name</span><input id="wzName" maxlength="60" placeholder="e.g. Ground floor, 1F"></label>
+        <label class="field"><span>Height above ground (m)</span><input id="wzElev" type="number" step="0.1"></label>
+      </div>
+      <div id="wzDrop" class="drop">
+        <div><b>Drop a PDF or image here</b> or <button id="wzPick">choose a file</button></div>
+        <small>PDF, PNG, JPG or WebP. Pages of a PDF are turned into an image in your browser.</small>
+      </div>
+      <input id="wzFile" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" hidden>
+      <div id="wzPdf" class="pdfpick" style="display:none">
+        <button id="wzPrev">◂</button><span id="wzPage"></span><button id="wzNext">▸</button>
+      </div>
+      <div id="wzPrevBox" class="preview" style="display:none"><canvas id="wzPrevCv"></canvas></div>
+      <label class="check"><input type="checkbox" id="wzBlank"> No plan yet: start with an empty grid</label>
+    </div>
+    <div id="wz2" style="display:none">
+      <div class="opts">
+        <label><input type="radio" name="wzScale" value="measure" checked> <b>Measure a line</b>: drag along something you know the length of (a dimension line, a wall), then type its length</label>
+        <label id="wzSameL"><input type="radio" name="wzScale" value="same"> <b>Same size as</b> <select id="wzSame"></select>: for plans exported from the same drawing set</label>
+        <label><input type="radio" name="wzScale" value="width"> <b>Type the width</b> the whole image covers: <input id="wzWidth" type="number" step="0.1" min="1" style="width:90px"> m</label>
+      </div>
+      <div id="wzMeasure" class="preview measure"><canvas id="wzCv"></canvas></div>
+      <div class="row2" id="wzLenRow">
+        <div class="empty" id="wzLine">Drag on the plan to draw the measuring line.</div>
+        <label class="field" style="margin:0"><span>Real length (m)</span><input id="wzLen" type="number" step="0.01" min="0.1" placeholder="e.g. 8"></label>
+      </div>
+    </div>
+    <div class="err" id="wzErr"></div>
+  </div>
+  <div class="dlg-f"><button id="wzBack">◂ Back</button><span style="flex:1"></span><button id="wzCancel">Cancel</button><button class="primary" id="wzNextBtn">Next ▸</button></div>
+</dialog>
 
 <dialog id="dlgFloors">
   <div class="dlg-h"><h2>Floors</h2><button id="fClose" title="Close">✕</button></div>
   <div class="dlg-b">
     <table class="fl">
-      <thead><tr><th>Plan</th><th>Name</th><th>Height (m)</th><th>Width (m)</th><th>Left (m)</th><th>Top (m)</th><th></th></tr></thead>
+      <thead><tr><th>Plan</th><th>Name</th><th>Height (m)</th><th>Width (m)</th><th>Left (m)</th><th>Top (m)</th><th></th><th></th></tr></thead>
       <tbody id="fRows"></tbody>
     </table>
     <p class="note">
-      <b>Plan</b>: upload a PNG, JPEG or WebP image of the floor. <b>Height</b> is the floor level above ground, used to stack floors in 3D.
-      <b>Width</b> is the real width the image covers, in metres; the depth follows from the image shape.
-      <b>Left/Top</b> shift the image so floors line up. Floors exported with <code>tools/render_plans.py</code> are already aligned.
+      <b>Height</b> is the floor level above ground, used to stack floors in 3D. <b>Width</b> is the real width the plan covers, in metres.
+      <b>Left/Top</b> move the plan; it is easier to use <b>⇲ Align</b> in the editor, which lets you drag a floor onto the one below.
+      Click a plan thumbnail to replace the plan (PDF or image).
     </p>
     <div class="err" id="fErr"></div>
   </div>
-  <div class="dlg-f"><button id="fAdd">+ Add floor</button><span style="flex:1"></span><button id="fCancel">Cancel</button><button class="primary" id="fSave">Save floors</button></div>
+  <div class="dlg-f"><button id="fAdd">＋ Add floor…</button><span style="flex:1"></span><button id="fCancel">Cancel</button><button class="primary" id="fSave">Save floors</button></div>
 </dialog>
-<input id="fPlanFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 
 <script type="module">
 // ---------- data ----------
 let floors = [];             // {id, name, elev, extent:[x0,y0,x1,y1] (m), plan, demo?}
 let rooms = [];              // {id, floor (floor id), type, no, name, x0,y0,x1,y1}  (metres, shared grid for all floors)
 let walls = [];              // {id, floor, x0,y0,x1,y1, t}  straight wall segments, t = thickness (m)
+// which map is open comes from the address: #/map/<id>  (no id = the maps home screen)
+const route = location.hash.match(/^#\/map\/([A-Za-z0-9_-]+)(\?add)?/);
+const MAP = route ? route[1] : null, OPEN_WIZARD = !!(route && route[2]);
+const API = MAP ? 'api/maps/' + MAP : '';
+addEventListener('hashchange', () => location.reload());
+let mapMeta = {name: ''};
 let serverOK = true;
-try {
-  const r = await fetch('api/map');
+if (MAP) try {
+  const r = await fetch(API);
+  if (r.status === 404) { location.hash = '#/'; }
   if (!r.ok) throw 0;
-  ({floors, rooms, walls = []} = await r.json());
+  ({map: mapMeta, floors, rooms, walls = []} = await r.json());
 } catch { serverOK = false; }
 const sortFloors = () => floors.sort((a,b) => a.elev - b.elev);
 sortFloors();
-const planUrl = f => f.plan ? 'files/' + f.plan : '';
+const planUrl = f => f.plan ? `files/${MAP}/${f.plan}` : '';
 
 let cur = 0;                 // floor index
 let mode = '2d';
@@ -226,7 +337,7 @@ function scheduleSave(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
-      const r = await fetch('api/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      const r = await fetch(API + '/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
       if (!r.ok) throw 0;
       setStatus(`Saved · ${rooms.length} boxes · ${walls.length} walls`);
     } catch { setStatus('Save failed — check the server, then make any change to retry', true); }
@@ -305,7 +416,7 @@ function typeButtons(el, active, onPick, short=false){
     el.appendChild(b);
   });
 }
-function setDrawType(k){ drawType = k; typeButtons($('typePick'), drawType, setDrawType); }
+function setDrawType(k){ drawType = k; typeButtons($('typePick'), drawType, setDrawType); updateHint(); }
 function setSelType(k){
   const r = byId(selId); if (!r || typeOf(r) === k) return;
   snapshot(); r.type = k;
@@ -487,8 +598,12 @@ function draw(){
   if ((mode !== '2d' && !exporting) || cur < 0) { bar.style.display = 'none'; return; }
   const W = exporting ? exporting.W : cv.clientWidth, H = exporting ? exporting.H : cv.clientHeight;
   ctx.fillStyle = '#0f1115'; ctx.fillRect(0,0,W,H);
-  const f = floors[cur]; if (!f) { bar.style.display = 'none'; return; }
+  const f = floors[cur]; if (!f) { bar.style.display = 'none'; updateHint(); return; }
   drawPlan(f);
+  if (align && align.fi === cur && floors[cur-1]) {      // floor below in red, multiplied over this plan
+    const b = floors[cur-1], tp = tintedPlan(b), [x0,y0,x1,y1] = b.extent, [p,q] = toScr(x0,y0);
+    if (tp) { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = .85; ctx.drawImage(tp, p, q, (x1-x0)*view.s, (y1-y0)*view.s); ctx.restore(); }
+  }
   const list = floorRooms(cur);
   if (drag && drag.kind === 'new') list.push(drag.r);
   const of = t => list.filter(r => typeOf(r) === t);
@@ -558,7 +673,7 @@ function draw(){
     for (const y of drag.guides.y) { const [,q] = toScr(0,y); ctx.moveTo(0,q); ctx.lineTo(W,q); }
     ctx.stroke(); ctx.setLineDash([]);
   }
-  if (!exporting) placeBar(sr || sw);
+  if (!exporting) { placeBar(align ? null : sr || sw); updateHint(); }
 }
 // floating toolbar above the selected box: change type or delete
 function placeBar(r){
@@ -659,7 +774,7 @@ function snapPoint(x, y, skipId, from, free){
 const roundW = w => ['x0','y0','x1','y1'].forEach(k => w[k] = Math.round(w[k]*100)/100);
 
 let tool = 'draw', space = false, drag = null;
-function setTool(t){ tool = t; $('tDraw').classList.toggle('on', t==='draw'); $('tWall').classList.toggle('on', t==='wall'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
+function setTool(t){ tool = t; setTimeout(updateHint); $('tDraw').classList.toggle('on', t==='draw'); $('tWall').classList.toggle('on', t==='wall'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
 $('tDraw').onclick = () => setTool('draw'); $('tWall').onclick = () => setTool('wall'); $('tPan').onclick = () => setTool('pan');
 $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -675,6 +790,7 @@ cv.addEventListener('pointerdown', e => {
   const sx = e.offsetX, sy = e.offsetY, [wx,wy] = toW(sx,sy);
   if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor='grabbing'; return; }
   if (!floors[cur]) return;
+  if (align) { drag = {kind:'align', sx, sy, dx0:align.dx, dy0:align.dy}; cv.style.cursor = 'grabbing'; return; }
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   // with the Wall tool, pressing on a wall end starts a new, connected wall; otherwise it moves that end
   const we = tool === 'wall' ? null : hitWallEnd(sx,sy);
@@ -700,6 +816,7 @@ cv.addEventListener('pointermove', e => {
   const sx = e.offsetX, sy = e.offsetY; let [wx,wy] = toW(sx,sy);
   if (!drag) {
     if (space || tool==='pan') return;
+    if (align) { cv.style.cursor = 'move'; return; }
     if (tool !== 'wall' && hitWallEnd(sx,sy)) { cv.style.cursor = 'grab'; return; }
     const hw = hitWall(sx,sy);
     if (tool === 'wall') { cv.style.cursor = 'crosshair'; return; }
@@ -709,6 +826,7 @@ cv.addEventListener('pointermove', e => {
     cv.style.cursor = h ? CURSOR[h] : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
   }
   if (drag.kind === 'pan') { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; draw(); return; }
+  if (drag.kind === 'align') { align.dx = drag.dx0 + (sx-drag.sx)/view.s; align.dy = drag.dy0 + (sy-drag.sy)/view.s; applyAlign(); draw(); return; }
   if (drag.kind === 'newWall' || drag.kind === 'wallEnd') {
     const w = drag.w, end = drag.kind === 'newWall' ? 1 : drag.end, other = end ? [w.x0,w.y0] : [w.x1,w.y1];
     if (drag.kind === 'wallEnd' && !drag.moved) { snapshot(); drag.moved = true; }
@@ -753,7 +871,7 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', () => {
   const d = drag; drag = null; if (!d) return;
-  if (d.kind === 'pan') { setTool(tool); draw(); return; }
+  if (d.kind === 'pan' || d.kind === 'align') { setTool(tool); draw(); return; }
   if (d.kind === 'newWall') {
     const w = d.w;
     if (Math.hypot(w.x1-w.x0, w.y1-w.y0)*view.s < 8) {           // just a click: select what's under it
@@ -784,7 +902,17 @@ addEventListener('keydown', e => {
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.shiftKey ? redo() : undo(); e.preventDefault(); return; }
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { redo(); e.preventDefault(); return; }
-  if (typing || mode !== '2d') return;
+  if (typing || mode !== '2d' || !MAP) return;
+  if (align) {
+    const step = e.shiftKey ? 0.5 : 0.05, ks = e.shiftKey ? 0.02 : 0.002;
+    const mv = {ArrowLeft:[-step,0], ArrowRight:[step,0], ArrowUp:[0,-step], ArrowDown:[0,step]}[e.key];
+    if (mv) { align.dx += mv[0]; align.dy += mv[1]; }
+    else if (e.key === '[') align.k *= 1 - ks; else if (e.key === ']') align.k *= 1 + ks;
+    else if (e.key === 'Enter') return endAlign(true); else if (e.key === 'Escape') return endAlign(false);
+    else return;
+    e.preventDefault(); applyAlign(); draw(); return;
+  }
+  if (e.key === 'a') { startAlign(); return; }
   if (e.key === 'Escape') { if (drag) cancelDrag(); else { selId = selWall = null; refreshUI(); draw(); } return; }
   if (e.code === 'Space') { space = true; cv.style.cursor = 'grab'; e.preventDefault(); }
   if (e.key === 'Delete' || e.key === 'Backspace') deleteSel();
@@ -825,8 +953,8 @@ async function runExport(kind){
   }
   if (kind === 'zip') {
     if (!serverOK) return toast('Cannot reach the Waypoint server.');
-    clearTimeout(saveTimer); await fetch('api/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({version:1, rooms, walls})}).catch(() => {});
-    const a = document.createElement('a'); a.href = 'api/export'; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
+    clearTimeout(saveTimer); await fetch(API + '/rooms', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({version:1, rooms, walls})}).catch(() => {});
+    const a = document.createElement('a'); a.href = API + '/export'; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
     return toast('Full backup is downloading.');
   }
   if (kind === 'png2d') return exportPng2d();
@@ -847,11 +975,11 @@ $('bImport').onclick = () => $('fImport').click();
 $('fImport').onchange = async e => {
   const file = e.target.files[0]; e.target.value = ''; if (!file) return;
   if (/\.zip$/i.test(file.name) || file.type.includes('zip')) {
-    if (!confirm(`Restore the full backup “${file.name}”?\n\nThis replaces ALL floors, plan images, rooms and walls on the server. ` +
+    if (!confirm(`Restore the full backup “${file.name}” into the map “${mapMeta.name}”?\n\nThis replaces ALL floors, plan images, rooms and walls of this map. (To add it as a separate map instead, use Import map on the maps screen.) ` +
                  `The current data is kept in the data folder under backups/ first, so it can be recovered.`)) return;
     toast('Restoring backup…', 20000);
     try {
-      const r = await fetch('api/import', {method:'POST', headers:{'Content-Type':'application/zip'}, body:file});
+      const r = await fetch(API + '/import', {method:'POST', headers:{'Content-Type':'application/zip'}, body:file});
       const j = await r.json(); if (!r.ok) throw new Error(j.error);
       alert(`Backup restored: ${j.floors} floors, ${j.rooms} boxes, ${j.walls} walls.\nPrevious data saved in ${j.previous_data}.`);
       location.reload();
@@ -869,7 +997,7 @@ $('fImport').onchange = async e => {
 };
 
 // ---------- floor manager ----------
-let draft = [], uploadRow = -1;
+let draft = [];
 const slug = t => (t.trim().replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 30) || 'floor');
 function openFloors(){ draft = structuredClone(floors); $('fErr').textContent = ''; renderFloorRows(); $('dlgFloors').showModal(); }
 function renderFloorRows(){
@@ -877,10 +1005,10 @@ function renderFloorRows(){
   if (!draft.length) tb.innerHTML = '<tr><td colspan="7" class="empty" style="padding:12px 6px">No floors yet — click “+ Add floor”.</td></tr>';
   draft.forEach((f, i) => {
     const tr = document.createElement('tr'), [x0,y0,x1,y1] = f.extent;
-    tr.innerHTML = `<td><button class="up" title="Upload plan image" style="padding:0;border:0;background:none">${f.plan ? '<img alt="">' : '<span style="display:inline-block;padding:8px 6px;border:1px dashed var(--line);border-radius:4px;font-size:12px">Upload</span>'}</button></td>
+    tr.innerHTML = `<td><button class="up" title="Replace the plan (PDF or image)" style="padding:0;border:0;background:none">${f.plan ? '<img alt="">' : '<span style="display:inline-block;padding:8px 6px;border:1px dashed var(--line);border-radius:4px;font-size:12px">Add plan</span>'}</button></td>
       <td><input class="nm" maxlength="60"></td><td><input class="n el" type="number" step="0.1"></td>
       <td><input class="n w" type="number" step="0.1" min="1"></td><td><input class="n x" type="number" step="0.1"></td><td><input class="n y" type="number" step="0.1"></td>
-      <td><button class="del" title="Delete floor">🗑</button></td>`;
+      <td><button class="al" title="Line this floor up with the floor below">⇲</button></td><td><button class="del" title="Delete floor">🗑</button></td>`;
     if (f.plan) tr.querySelector('img').src = planUrl(f);
     const nm = tr.querySelector('.nm'); nm.value = f.name;
     if (f.demo) nm.insertAdjacentHTML('afterend', '<span class="tag">demo</span>');
@@ -891,7 +1019,9 @@ function renderFloorRows(){
     tr.querySelector('.w').oninput = e => { const w = +e.target.value; if (w > 0) { const k = w/(f.extent[2]-f.extent[0]); f.extent[2] = f.extent[0]+w; f.extent[3] = f.extent[1]+(f.extent[3]-f.extent[1])*k; } };
     tr.querySelector('.x').oninput = e => { const w = f.extent[2]-f.extent[0]; f.extent[0] = +e.target.value; f.extent[2] = f.extent[0]+w; };
     tr.querySelector('.y').oninput = e => { const h = f.extent[3]-f.extent[1]; f.extent[1] = +e.target.value; f.extent[3] = f.extent[1]+h; };
-    tr.querySelector('.up').onclick = () => { uploadRow = i; $('fPlanFile').click(); };
+    tr.querySelector('.up').onclick = () => { $('dlgFloors').close(); openWizard(floors.findIndex(x => x.id === f.id)); };
+    const al = tr.querySelector('.al'); al.disabled = i === 0;
+    al.onclick = () => { $('dlgFloors').close(); const fi = floors.findIndex(x => x.id === f.id); if (fi > 0) { setMode('2d').then(() => { setFloor(fi); startAlign(); }); } };
     tr.querySelector('.del').onclick = () => {
       const n = rooms.filter(r => r.floor === f.id).length;
       if (confirm(`Delete floor “${f.name}”${n ? ` and its ${n} rooms` : ''}? This happens when you click “Save floors”.`)) { draft.splice(i, 1); renderFloorRows(); }
@@ -899,29 +1029,12 @@ function renderFloorRows(){
     tb.appendChild(tr);
   });
 }
-$('fAdd').onclick = () => {
-  const last = draft[draft.length-1], ids = new Set(draft.map(f => f.id));
-  const name = `Floor ${draft.length + 1}`; let id = slug(name), k = 2; while (ids.has(id)) id = slug(name) + '-' + k++;
-  draft.push({id, name, elev: last ? +(last.elev + 4).toFixed(2) : 0, extent: last ? [...last.extent] : [0, 0, 60, 40], plan: ''});
-  renderFloorRows();
-};
-$('fPlanFile').onchange = async e => {
-  const file = e.target.files[0]; e.target.value = ''; const f = draft[uploadRow]; if (!file || !f) return;
-  $('fErr').textContent = 'Uploading…';
-  try {
-    const r = await fetch('api/plans/' + encodeURIComponent(f.id), {method:'POST', body:file});
-    const j = await r.json(); if (!r.ok) throw new Error(j.error);
-    f.plan = j.plan;
-    const im = new Image(); await new Promise((ok, bad) => { im.onload = ok; im.onerror = bad; im.src = planUrl(f); });
-    f.extent[3] = f.extent[1] + (f.extent[2] - f.extent[0]) * im.naturalHeight / im.naturalWidth;   // keep the image's shape
-    $('fErr').textContent = ''; renderFloorRows();
-  } catch (err) { $('fErr').textContent = 'Upload failed: ' + (err.message || err); }
-};
+$('fAdd').onclick = () => { $('dlgFloors').close(); openWizard(); };
 $('fSave').onclick = async () => {
   if (draft.some(f => !f.name.trim())) return $('fErr').textContent = 'Every floor needs a name.';
   const keep = new Set(draft.map(f => f.id)), dropped = rooms.filter(r => !keep.has(r.floor));
   try {
-    const r = await fetch('api/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:draft})});
+    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:draft})});
     const j = await r.json(); if (!r.ok) throw new Error(j.error);
   } catch (err) { return $('fErr').textContent = 'Save failed: ' + (err.message || err); }
   const curId = floors[cur]?.id;
@@ -932,13 +1045,288 @@ $('fSave').onclick = async () => {
   if (mode === '3d') await setMode('3d'); else setFloor(cur);
 };
 $('fCancel').onclick = $('fClose').onclick = () => $('dlgFloors').close();
-$('bFloors').onclick = openFloors; $('bFirstFloor').onclick = openFloors;
+$('bFloors').onclick = openFloors; $('bFirstFloor').onclick = () => openWizard(); $('bAddFloor').onclick = () => openWizard();
 
 function updateChrome(){
   const none = !floors.length;
   $('emptyMain').style.display = none ? 'flex' : 'none';
-  $('m3d').disabled = none;
+  $('m3d').disabled = none; $('bAlign').disabled = cur < 1;
   $('banner').style.display = floors.some(f => f.demo) ? 'block' : 'none';
+}
+
+// ---------- maps home screen ----------
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ago = iso => { if (!iso) return ''; const d = (Date.now() - new Date(iso))/1000;
+  return d < 90 ? 'just now' : d < 3600 ? Math.round(d/60) + ' min ago' : d < 86400 ? Math.round(d/3600) + ' h ago' : new Date(iso).toLocaleDateString(); };
+async function showHome(){
+  document.body.classList.add('at-home'); $('home').style.display = 'block';
+  let maps = [];
+  try { maps = (await (await fetch('api/maps')).json()).maps; } catch { $('maps').innerHTML = '<div class="err">Cannot reach the Waypoint server.</div>'; return; }
+  const el = $('maps'); el.innerHTML = '';
+  if (!maps.length) el.innerHTML = '<div class="empty">No maps yet. Click <b>＋ New map</b> to start.</div>';
+  for (const m of maps) {
+    const c = document.createElement('div'); c.className = 'card';
+    c.innerHTML = `<div class="th ${m.thumb ? '' : 'none'}">${m.thumb ? '' : 'no floors yet'}</div>
+      <div class="bd"><div><div class="nm"></div><div class="mt"></div></div>
+      <div class="grp"><button data-a="rename" title="Rename">✎</button><button data-a="dup" title="Duplicate">⧉</button><button data-a="zip" title="Download backup (.zip)">⤓</button><button data-a="del" title="Delete" class="danger">🗑</button></div></div>`;
+    if (m.thumb) c.querySelector('.th').style.backgroundImage = `url("${m.thumb}")`;
+    c.querySelector('.nm').textContent = m.name;
+    if (m.demo) c.querySelector('.nm').insertAdjacentHTML('beforeend', ' <span class="tag">demo</span>');
+    c.querySelector('.mt').textContent = `${m.floors} floor${m.floors === 1 ? '' : 's'} · ${m.rooms} box${m.rooms === 1 ? '' : 'es'} · ${m.walls} wall${m.walls === 1 ? '' : 's'} · ${ago(m.updated)}`;
+    c.onclick = () => location.hash = '#/map/' + m.id;
+    c.querySelectorAll('[data-a]').forEach(b => b.onclick = async e => {
+      e.stopPropagation(); const a = b.dataset.a;
+      if (a === 'rename') { const n = prompt('New name for this map:', m.name); if (n && n.trim()) { await fetch('api/maps/' + m.id, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n.trim()})}); showHome(); } }
+      if (a === 'dup') { const n = prompt('Name for the copy:', m.name + ' (copy)'); if (n && n.trim()) { await fetch(`api/maps/${m.id}/duplicate`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n.trim()})}); showHome(); } }
+      if (a === 'zip') { const l = document.createElement('a'); l.href = `api/maps/${m.id}/export`; l.download = ''; document.body.appendChild(l); l.click(); l.remove(); }
+      if (a === 'del' && confirm(`Delete the map “${m.name}”?\n\nIt is moved to the backups folder on the server, so it can still be recovered from there.`)) {
+        const r = await (await fetch('api/maps/' + m.id, {method:'DELETE'})).json(); toast('Deleted. Kept in ' + r.kept_in, 6000); showHome();
+      }
+    });
+    el.appendChild(c);
+  }
+}
+$('hNew').onclick = async () => {
+  const n = prompt('Name of the new map (for example the building name):'); if (!n || !n.trim()) return;
+  const r = await fetch('api/maps', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n.trim()})});
+  const j = await r.json(); if (!r.ok) return alert(j.error);
+  location.hash = `#/map/${j.id}?add`;                   // open it and go straight to "add the first floor"
+};
+$('hImport').onclick = () => $('hImportFile').click();
+$('hImportFile').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  const n = prompt('Name for the imported map:', file.name.replace(/\.zip$/i, '').replace(/^waypoint-/, '')); if (n === null) return;
+  toast('Importing…', 20000);
+  const r = await fetch('api/maps/import?name=' + encodeURIComponent(n.trim()), {method:'POST', headers:{'Content-Type':'application/zip'}, body:file});
+  const j = await r.json(); if (!r.ok) return toast('Import failed: ' + j.error, 8000);
+  location.hash = '#/map/' + j.id;
+};
+$('bHome').onclick = () => location.hash = '#/';
+$('bMapName').onclick = async () => {
+  const n = prompt('Rename this map:', mapMeta.name); if (!n || !n.trim()) return;
+  const r = await fetch(API, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n.trim()})});
+  if (r.ok) { mapMeta.name = n.trim(); $('bMapName').textContent = mapMeta.name; document.title = mapMeta.name + ' · Waypoint'; }
+};
+
+// ---------- add / replace a floor: PDF or image → scale → saved ----------
+let pdfjs = null;
+async function loadPdfjs(){
+  if (pdfjs) return pdfjs;
+  pdfjs = await import('./vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/pdf.worker.min.mjs';
+  return pdfjs;
+}
+const MAX_PX = 4096;                                     // keeps plans within every GPU's texture limit
+const wz = {};
+function openWizard(replaceIdx = -1){
+  Object.assign(wz, {idx: replaceIdx, step: 1, src: null, pdf: null, page: 1, pages: 0, line: null, fileName: ''});
+  const f = floors[replaceIdx], last = floors[floors.length-1];
+  $('wzTitle').textContent = f ? `Replace the plan of “${f.name}”` : 'Add a floor';
+  $('wzName').value = f ? f.name : (floors.length ? '' : 'Ground floor');
+  $('wzElev').value = f ? f.elev : (last ? +(last.elev + 4).toFixed(2) : 0);
+  $('wzBlank').checked = false; $('wzBlank').parentElement.style.display = f ? 'none' : '';
+  $('wzPdf').style.display = 'none'; $('wzPrevBox').style.display = 'none'; $('wzErr').textContent = ''; $('wzLen').value = '';
+  const others = floors.filter((_, i) => i !== replaceIdx);
+  $('wzSame').innerHTML = (f ? [f, ...others] : [...others].reverse()).map(o => `<option value="${esc(o.id)}">${esc(o.name)}${o === f ? ' (current plan)' : ''}</option>`).join('');
+  $('wzSameL').style.display = f || others.length ? '' : 'none';
+  document.querySelector(`input[name=wzScale][value=${f || others.length ? 'same' : 'measure'}]`).checked = true;
+  $('wzWidth').value = f ? +(f.extent[2]-f.extent[0]).toFixed(2) : '';
+  wzShow(1); $('dlgWiz').showModal();
+}
+function wzShow(step){
+  wz.step = step;
+  $('wz1').style.display = step === 1 ? '' : 'none'; $('wz2').style.display = step === 2 ? '' : 'none';
+  document.querySelectorAll('#dlgWiz .steps span').forEach(sp => sp.classList.toggle('on', +sp.dataset.s === step));
+  $('wzBack').style.visibility = step === 2 ? 'visible' : 'hidden';
+  $('wzNextBtn').textContent = step === 1 && !$('wzBlank').checked ? 'Next ▸' : (wz.idx >= 0 ? 'Replace plan' : 'Add floor');
+  if (step === 2) { wzScaleMode(); drawMeasure(); }
+}
+function wzScaleMode(){
+  const m = document.querySelector('input[name=wzScale]:checked').value;
+  $('wzMeasure').style.display = m === 'measure' ? '' : 'none'; $('wzLenRow').style.display = m === 'measure' ? '' : 'none';
+}
+document.querySelectorAll('input[name=wzScale]').forEach(r => r.onchange = wzScaleMode);
+$('wzBlank').onchange = () => { $('wzDrop').style.opacity = $('wzBlank').checked ? .4 : 1; wzShow(1); };
+async function wzLoadFile(file){
+  $('wzErr').textContent = ''; wz.fileName = file.name;
+  if (!$('wzName').value.trim()) $('wzName').value = file.name.replace(/\.[^.]+$/, '').slice(0, 60);
+  try {
+    if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
+      $('wzErr').textContent = 'Reading PDF…';
+      const lib = await loadPdfjs();
+      wz.pdf = await lib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise;
+      wz.pages = wz.pdf.numPages; wz.page = 1; await wzRenderPage();
+    } else {
+      wz.pdf = null; const im = new Image(), url = URL.createObjectURL(file);
+      await new Promise((ok, bad) => { im.onload = ok; im.onerror = () => bad(new Error('this file is not an image the browser can read')); im.src = url; });
+      const k = Math.min(1, MAX_PX / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth*k); c.height = Math.round(im.naturalHeight*k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); wz.src = c; wzPreview();
+    }
+    $('wzErr').textContent = '';
+  } catch (err) { $('wzErr').textContent = 'Could not read the file: ' + (err.message || err); }
+}
+async function wzRenderPage(){
+  const page = await wz.pdf.getPage(wz.page), vp1 = page.getViewport({scale:1});
+  const vp = page.getViewport({scale: Math.min(MAX_PX / Math.max(vp1.width, vp1.height), 8)});
+  const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height);
+  await page.render({canvasContext:x, viewport:vp}).promise;
+  wz.src = c; wz.line = null;
+  $('wzPdf').style.display = wz.pages > 1 ? 'flex' : 'none'; $('wzPage').textContent = `Page ${wz.page} of ${wz.pages}`;
+  wzPreview();
+}
+function wzPreview(){
+  const c = $('wzPrevCv'), k = Math.min(1, 1600 / wz.src.width);
+  c.width = Math.round(wz.src.width*k); c.height = Math.round(wz.src.height*k);
+  c.getContext('2d').drawImage(wz.src, 0, 0, c.width, c.height); $('wzPrevBox').style.display = '';
+}
+$('wzPrev').onclick = async () => { if (wz.page > 1) { wz.page--; await wzRenderPage(); } };
+$('wzNext').onclick = async () => { if (wz.page < wz.pages) { wz.page++; await wzRenderPage(); } };
+$('wzPick').onclick = e => { e.preventDefault(); $('wzFile').click(); };
+$('wzFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) wzLoadFile(f); };
+const drop = $('wzDrop');
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) wzLoadFile(f); };
+// measuring line on the plan (in plan-image pixels)
+function drawMeasure(){
+  if (!wz.src) return;
+  const c = $('wzCv'), k = Math.min(1, 1600 / wz.src.width); c.width = Math.round(wz.src.width*k); c.height = Math.round(wz.src.height*k);
+  const x = c.getContext('2d'); x.drawImage(wz.src, 0, 0, c.width, c.height);
+  if (wz.line) {
+    const [a,b,p,q] = wz.line.map(v => v*k);
+    x.strokeStyle = '#ff3ea5'; x.lineWidth = 3; x.beginPath(); x.moveTo(a,b); x.lineTo(p,q); x.stroke();
+    x.fillStyle = '#ff3ea5'; for (const [u,v] of [[a,b],[p,q]]) { x.beginPath(); x.arc(u,v,5,0,7); x.fill(); }
+    const px = Math.hypot(wz.line[2]-wz.line[0], wz.line[3]-wz.line[1]), len = +$('wzLen').value;
+    $('wzLine').textContent = len > 0 ? `Line: ${px.toFixed(0)} px = ${len} m → the whole plan is ${(wz.src.width/(px/len)).toFixed(1)} m wide.` : `Line drawn (${px.toFixed(0)} px). Now type its real length →`;
+  } else $('wzLine').textContent = 'Drag on the plan to draw the measuring line.';
+}
+{
+  const c = $('wzCv'); let down = null;
+  const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*wz.src.width, (e.clientY-r.top)/r.height*wz.src.height]; };
+  c.onpointerdown = e => { if (!wz.src) return; c.setPointerCapture(e.pointerId); down = pos(e); wz.line = [...down, ...down]; drawMeasure(); };
+  c.onpointermove = e => {
+    if (!down) return; let [x,y] = pos(e);
+    const ang = Math.abs(Math.atan2(y-down[1], x-down[0]))*180/Math.PI;           // straighten near horizontal / vertical
+    if (!e.shiftKey) { if (ang < 4 || ang > 176) y = down[1]; else if (Math.abs(ang-90) < 4) x = down[0]; }
+    wz.line = [...down, x, y]; drawMeasure();
+  };
+  c.onpointerup = () => { down = null; if (wz.line && Math.hypot(wz.line[2]-wz.line[0], wz.line[3]-wz.line[1]) < 5) wz.line = null; drawMeasure(); $('wzLen').focus(); };
+  $('wzLen').oninput = drawMeasure;
+}
+$('wzBack').onclick = () => wzShow(1);
+$('wzCancel').onclick = $('wzClose').onclick = () => $('dlgWiz').close();
+$('wzNextBtn').onclick = async () => {
+  $('wzErr').textContent = '';
+  const name = $('wzName').value.trim(), elev = +$('wzElev').value || 0;
+  if (!name) return $('wzErr').textContent = 'Give the floor a name.';
+  if (wz.step === 1) {
+    if ($('wzBlank').checked) return wzFinish(name, elev, null);
+    if (!wz.src) return $('wzErr').textContent = 'Choose a PDF or image first (or tick “No plan yet”).';
+    return wzShow(2);
+  }
+  // step 2: work out how many metres the image covers
+  const mode = document.querySelector('input[name=wzScale]:checked').value, W = wz.src.width, Hh = wz.src.height;
+  let ext;
+  const origin = floors.length ? [floors[0].extent[0], floors[0].extent[1]] : [0, 0];
+  if (mode === 'measure') {
+    const len = +$('wzLen').value;
+    if (!wz.line) return $('wzErr').textContent = 'Drag along something on the plan whose length you know.';
+    if (!(len > 0)) return $('wzErr').textContent = 'Type the real length of the line in metres.';
+    const pxm = Math.hypot(wz.line[2]-wz.line[0], wz.line[3]-wz.line[1]) / len;
+    ext = [origin[0], origin[1], origin[0] + W/pxm, origin[1] + Hh/pxm];
+  } else if (mode === 'same') {
+    const o = floors.find(f => f.id === $('wzSame').value).extent;
+    ext = [o[0], o[1], o[2], o[1] + (o[2]-o[0]) * Hh/W];
+  } else {
+    const w = +$('wzWidth').value; if (!(w > 0)) return $('wzErr').textContent = 'Type the width in metres.';
+    ext = [origin[0], origin[1], origin[0] + w, origin[1] + w*Hh/W];
+  }
+  wzFinish(name, elev, ext, mode);
+};
+async function wzFinish(name, elev, ext, scaleMode){
+  const btn = $('wzNextBtn'); btn.disabled = true; $('wzErr').textContent = 'Saving…';
+  try {
+    const next = structuredClone(floors);
+    let f = next[wz.idx];
+    if (!f) {
+      const ids = new Set(next.map(x => x.id)); let id = slug(name), k = 2; while (ids.has(id)) id = slug(name) + '-' + k++;
+      const last = next[next.length-1];
+      f = {id, name, elev, extent: ext || (last ? [...last.extent] : [0, 0, 60, 40]), plan: ''}; next.push(f);
+    }
+    f.name = name; f.elev = elev; delete f.demo;
+    if (wz.src && ext) {
+      const blob = await new Promise(res => wz.src.toBlob(res, 'image/png'));
+      const r = await fetch(`${API}/plans/${encodeURIComponent(f.id)}`, {method:'POST', body:blob});
+      const j = await r.json(); if (!r.ok) throw new Error(j.error);
+      f.plan = j.plan; f.extent = ext;
+    }
+    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors:next})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error);
+    floors = next; sortFloors(); $('dlgWiz').close();
+    const fi = floors.findIndex(x => x.id === f.id);
+    if (mode !== '2d') await setMode('2d');
+    setFloor(fi);
+    toast(fi > 0 && scaleMode !== 'same' ? 'Floor saved. If it does not line up with the floor below, use ⇲ Align.' : 'Floor saved. Now draw rooms and walls on it.', 6000);
+  } catch (err) { $('wzErr').textContent = 'Could not save: ' + (err.message || err); }
+  finally { btn.disabled = false; }
+}
+
+// ---------- align a floor onto the floor below ----------
+let align = null;                                        // {fi, dx, dy, k, orig}
+const tinted = {};
+function tintedPlan(f){                                  // the plan with its dark lines turned red, white kept white
+  const e = imgs[planUrl(f)]; if (!e || !e.im.naturalWidth) return null;
+  if (tinted[planUrl(f)]) return tinted[planUrl(f)];
+  const c = document.createElement('canvas'); c.width = e.im.naturalWidth; c.height = e.im.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(e.im, 0, 0); x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgb(255,40,40)'; x.fillRect(0,0,c.width,c.height);
+  return tinted[planUrl(f)] = c;
+}
+function startAlign(){
+  if (cur < 1 || !floors[cur]) return toast('Align needs a floor below this one.');
+  selId = selWall = null; setTool('draw');
+  const f = floors[cur];
+  align = {fi: cur, dx: 0, dy: 0, k: 1, orig: {extent: [...f.extent], rooms: floorRooms(cur).map(r => ({...r})), walls: floorWalls(cur).map(w => ({...w}))}};
+  loadImg(cur-1).then(draw);
+  $('alignTxt').innerHTML = `Aligning <b>${esc(f.name)}</b> onto <b style="color:#ff6b6b">${esc(floors[cur-1].name)}</b> (red). Drag the plan · arrows nudge · <kbd>[</kbd> <kbd>]</kbd> scale`;
+  $('alignBar').style.display = 'flex'; refreshUI(); draw();
+}
+function applyAlign(){
+  const f = floors[align.fi], o = align.orig, [a0,b0,a1,b1] = o.extent, cx = (a0+a1)/2, cy = (b0+b1)/2, k = align.k;
+  const T = (x,y) => [cx + (x-cx)*k + align.dx, cy + (y-cy)*k + align.dy];
+  [f.extent[0], f.extent[1]] = T(a0,b0); [f.extent[2], f.extent[3]] = T(a1,b1);
+  for (const r0 of o.rooms) { const r = byId(r0.id); if (!r) continue; [r.x0,r.y0] = T(r0.x0,r0.y0); [r.x1,r.y1] = T(r0.x1,r0.y1); }
+  for (const w0 of o.walls) { const w = wallById(w0.id); if (!w) continue; [w.x0,w.y0] = T(w0.x0,w0.y0); [w.x1,w.y1] = T(w0.x1,w0.y1); }
+}
+async function endAlign(save){
+  if (!align) return;
+  if (!save) { align.dx = align.dy = 0; align.k = 1; applyAlign(); }
+  else {
+    floors[align.fi].extent = floors[align.fi].extent.map(v => Math.round(v*1000)/1000);
+    const r = await fetch(API + '/floors', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({floors})});
+    if (!r.ok) { toast('Could not save the alignment.'); return; }
+    undoStack.length = redoStack.length = 0;            // older undo steps would no longer match the moved plan
+    scheduleSave(); toast('Alignment saved.');
+  }
+  align = null; $('alignBar').style.display = 'none'; refreshUI(); draw();
+}
+$('alignDone').onclick = () => endAlign(true); $('alignCancel').onclick = () => endAlign(false);
+$('bAlign').onclick = () => startAlign();
+
+// ---------- hint line ----------
+function updateHint(){
+  const h = $('hint');
+  if (mode !== '2d' || !floors[cur] || align) { h.style.display = 'none'; return; }
+  const sr = selId && byId(selId), sw = selWall && wallById(selWall);
+  let t;
+  if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> selected · drag it to move · drag edges to resize · type a number and name in the side panel · <b>Del</b> deletes · <b>Esc</b> deselects`;
+  else if (sw) t = `<b>Wall</b> selected · drag it or its round ends · set thickness in the side panel · <b>Del</b> deletes · <b>Esc</b> deselects`;
+  else if (tool === 'wall') t = `<b>Wall tool</b> · drag from one end of a wall to the other · start on a wall's end to continue it · hold <b>Shift</b> for any angle · <b>B</b> back to boxes`;
+  else if (tool === 'pan') t = `<b>Pan</b> · drag to move around · scroll to zoom · <b>B</b> to draw boxes`;
+  else t = `<b>Draw a ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · pick another type in the side panel (keys 1–6) · <b>W</b> walls · scroll to zoom · right-drag to pan`;
+  h.innerHTML = t; h.style.display = 'block';
 }
 
 // ---------- 3D view ----------
@@ -1156,10 +1544,15 @@ async function setMode(m){
 $('mDraw').onclick = () => setMode('2d');
 $('m3d').onclick = () => setMode('3d');
 
-buildTabs(); refreshUI(); updateChrome(); resize(); setTool('draw'); setDrawType('room');
 fetch('api/health').then(r => r.json()).then(j => $('ver').textContent = j.version).catch(() => {});
-setStatus(serverOK ? `Saved · ${rooms.length} boxes` : 'Cannot reach the Waypoint server — changes will not be saved', !serverOK);
-await Promise.all([loadImg(0)]); fit();
+if (!MAP) showHome();
+else {
+  $('bMapName').textContent = mapMeta.name; document.title = mapMeta.name + ' · Waypoint';
+  buildTabs(); refreshUI(); updateChrome(); resize(); setTool('draw'); setDrawType('room');
+  setStatus(serverOK ? `Saved · ${rooms.length} boxes · ${walls.length} walls` : 'Cannot reach the Waypoint server — changes will not be saved', !serverOK);
+  await Promise.all([loadImg(0)]); fit();
+  if (OPEN_WIZARD) { history.replaceState(null, '', '#/map/' + MAP); openWizard(); }
+}
 </script>
 </body>
 </html>

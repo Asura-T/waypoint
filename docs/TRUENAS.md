@@ -179,7 +179,7 @@ Old image versions stay in GHCR until you delete them, so rollback keeps working
 
 ## Backing up
 
-All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick any of these:
+All state is in the data dataset: one folder per map under `maps/`, plus `backups/`. Pick any of these:
 
 1. **ZFS snapshots (recommended):** **Data Protection → Periodic Snapshot Tasks → Add**, dataset `<POOL>/apps/waypoint/data`, for example daily with 30-day retention. Add a **Replication** or **Cloud Sync** task to keep a copy off the NAS.
 2. **Manual snapshot** before each update, as shown in [Updating](#updating).
@@ -187,7 +187,7 @@ All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick a
    ```bash
    sudo tar czf /mnt/<POOL>/backups/waypoint-$(date +%F).tar.gz -C /mnt/<POOL>/apps/waypoint data
    ```
-4. **From the app:** **Export ▾ → Full backup (.zip)** downloads floors, plan images, rooms and walls in one file. You can restore it on any Waypoint server with **Import**. Before it replaces anything, the import copies the current data to `/data/backups/pre-import-<time>/`. (**Rooms & walls (.json)** does not include the plan images.)
+4. **From the app:** **Export ▾ → Full backup (.zip)** in a map, or **⤓** on the maps screen, downloads that map's floors, plan images, rooms and walls in one file. On any Waypoint server you can bring it back as a *new* map (**Import map** on the maps screen), or replace the open map with it (**Import** in the editor). Before replacing, the old version is moved to `/data/backups/pre-import-<map>-<time>/`. (**Rooms & walls (.json)** does not include the plan images.)
 
 ## Restoring
 
@@ -200,9 +200,9 @@ All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick a
      sudo mv data data.old && sudo mkdir data
      sudo tar xzf /mnt/<POOL>/backups/waypoint-YYYY-MM-DD.tar.gz -C /mnt/<POOL>/apps/waypoint
      ```
-   - **Only the last save:** `sudo cp data/rooms.bak.json data/rooms.json`
+   - **Only the last save of one map:** `sudo cp data/maps/<map-id>/rooms.bak.json data/maps/<map-id>/rooms.json`
    - **From a backup .zip:** you don't need to stop the app. Use **Import** in the app and choose the .zip.
-   - **Undo an import:** copy the files back from `data/backups/pre-import-<time>/`.
+   - **Undo an import or a deleted map:** stop the app, move the folder from `data/backups/` back to `data/maps/<map-id>/`, then start the app again.
 3. Fix ownership: `sudo chown -R 568:568 /mnt/<POOL>/apps/waypoint/data`
 4. **Start** the app again and reload the page.
 
@@ -214,4 +214,5 @@ All state is in the data dataset (`floors.json`, `rooms.json`, `plans/`). Pick a
 - **The app keeps restarting and the logs show `PermissionError: … '/data/plans'`:** the data dataset is not writable by 568:568. Fix it as described in step 1.
 - **"Save failed" in the page:** the container cannot write `/data`. Check the ownership from step 1, and check the logs (Apps → waypoint → Logs, or `sudo docker logs waypoint`).
 - **Port 8080 is already in use:** change only the *host* port, for example to `8090:8080`.
-- **You see the demo office instead of your maps:** the `/data` host path points at an empty folder. Check the path in the app's storage settings.
+- **You only see the demo map:** the `/data` host path points at an empty folder. Check the path in the app's storage settings.
+- **After updating from a version without the maps screen:** your map shows up as **My map**. The first start moves the old files into `maps/main/`. Rename it with ✎ on the maps screen.

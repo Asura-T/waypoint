@@ -2,7 +2,18 @@
 
 Waypoint is an interactive 3D office map for planning office improvements and documenting network equipment.
 
-You upload a floor plan image for each floor, draw a box around each room, and give it a room number (required) and a name (optional). Waypoint stacks the floors in a 3D view you can rotate, and it saves everything on your own server.
+Keep as many **maps** as you like (one per building or site). For each floor you upload the plan as a **PDF or image**, set its scale by measuring one line, then draw rooms and walls on top of it. Waypoint stacks the floors in a 3D view you can rotate, and it saves everything on your own server.
+
+- **Maps home**: lists all maps with a preview. From here you can create, rename, duplicate or delete a map, download a map's backup, or import a backup as a new map. Deleted maps are kept in `/data/backups/`. Click **◂ Waypoint** in the editor to come back here.
+- **＋ Floor** (the add-floor wizard):
+  1. Drop a **PDF** (any page) or a PNG, JPG or WebP image. PDFs are turned into an image in your browser.
+  2. Set the scale in one of three ways:
+     - **measure a line** you know the length of
+     - **same size as** another floor, for plans from the same drawing set
+     - **type the width** in metres
+  3. Click the plan thumbnail under **Floors…** to replace a plan the same way.
+- **⇲ Align** (<kbd>A</kbd>): lays the floor below over the current one in red. Drag the plan (or use the arrow keys) until they match; <kbd>[</kbd> and <kbd>]</kbd> fine-tune the scale. Rooms and walls already drawn on that floor move with it.
+- **Hint bar**: the line at the bottom of the plan always says what the current tool does and which keys work.
 
 - **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
 - **Box types**:
@@ -92,14 +103,19 @@ git tag v1.2.3 && git push origin v1.2.3     # publishes :1.2.3 and :1.2
 
 ## What is stored in `/data`
 
+Each map has its own folder. A data folder from an older Waypoint (with `floors.json` directly in `/data`) is moved into `maps/main/` ("My map") on the first start. Nothing is deleted.
+
 ```
 /data
-├── floors.json        floors: name, height, position/size in metres, plan image
-├── rooms.json         boxes: floor, type (room/bathroom/walkway/stair/elevator/empty), number, name, box in metres
-│                      walls: floor, start/end point and thickness in metres
-├── backups/           copies of the data taken automatically before a backup is imported
-├── plans/             uploaded floor plan images
-└── *.bak.json         the previous version of each file, rewritten on every save
+├── maps/
+│   └── <map-id>/
+│       ├── map.json       name, created, last changed
+│       ├── floors.json    floors: name, height, position/size in metres, plan image
+│       ├── rooms.json     boxes: floor, type (room/bathroom/walkway/stair/elevator/empty), number, name, box in metres
+│       │                  walls: floor, start/end point and thickness in metres
+│       ├── plans/         floor plan images (PDF pages are stored as PNG)
+│       └── *.bak.json     the previous version of each file, rewritten on every save
+└── backups/               maps replaced by an import or deleted, kept so they can be recovered
 ```
 
 Back up this whole folder, and nothing else. The image can always be rebuilt from git.
@@ -115,10 +131,10 @@ If your plans are AutoCAD PDF exports with column-grid labels, `tools/render_pla
 ```bash
 pip install pymupdf
 cp tools/render_plans.example.json /path/to/data/render_plans.json   # fill in, keep it out of git
-python tools/render_plans.py /path/to/data/render_plans.json /path/to/pdfs /path/to/data
+python tools/render_plans.py /path/to/data/render_plans.json /path/to/pdfs /path/to/data/maps/<map-id>
 ```
 
-Otherwise, upload PNG, JPEG or WebP images under **Floors…** and enter each floor's real width in metres.
+Most people do not need this: the **＋ Floor** wizard in the app reads PDFs directly, and **⇲ Align** lines floors up by eye.
 
 ## Development
 

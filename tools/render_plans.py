@@ -6,10 +6,12 @@ so every floor lines up in 3D even if the PDFs use different paper sizes or scal
 
 Usage:
   pip install pymupdf
-  python tools/render_plans.py <config.json> <pdf_dir> <data_dir>
+  python tools/render_plans.py <config.json> <pdf_dir> <map_dir>
 
-<data_dir> is your Waypoint data folder (the one mounted at /data). The script
-writes <data_dir>/plans/<id>.png and <data_dir>/floors.json; existing rooms are kept.
+<map_dir> is one map's folder inside the Waypoint data folder, e.g. /data/maps/main
+(create the map in the app first). The script writes <map_dir>/plans/<id>.png and
+<map_dir>/floors.json; existing rooms and walls are kept. Most people can simply use
+the app's "+ Floor" wizard instead, which reads PDFs directly.
 Copy tools/render_plans.example.json, fill in your building, and keep the filled-in
 copy out of git (for example inside the data folder).
 """
