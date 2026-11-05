@@ -16,6 +16,12 @@ Keep as many **maps** as you like (one per building or site). For each floor you
 - **Hint bar**: the line at the bottom of the plan always says what the current tool does and which keys work.
 
 - **Tool palette** (left of the plan): **Select** (<kbd>V</kbd>) to click, move and resize without drawing by accident, and to pan by dragging empty space. One button per box type (<kbd>1</kbd>–<kbd>8</kbd>), plus **Wall** (<kbd>W</kbd>) and **Pan** (<kbd>H</kbd>). Selecting a box or wall opens an **edit card right next to it** for type, number, name, size or thickness. Zoom, Fit and Align are at the bottom right. **☰ List** shows or hides the box list, which has a search box.
+- **Click corners** (<kbd>C</kbd> switches between **Drag a box** and **Click corners**): with any box type or the Wall tool, click a dot on each corner.
+  - **Box types:** click the first dot again (or press <kbd>Enter</kbd>, or double-click) to close the shape. Rooms, gardens and the other types can be any shape, not just rectangles.
+  - **Walls:** a wall is drawn along each side. Click the first dot to close the loop, or press <kbd>Enter</kbd> to stop.
+  - <kbd>Backspace</kbd> removes the last dot and <kbd>Esc</kbd> cancels.
+  - Dots snap to existing corners and wall ends, and line up straight with the previous dot and with earlier dots of the same shape. Hold <kbd>Shift</kbd> for any angle.
+  - To reshape one later, use **Select**, click it and drag its round corner dots.
 - **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
 - **Box types**:
   - **Room**: needs a room number. The name is optional.

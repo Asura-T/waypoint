@@ -11,7 +11,8 @@ Standard library only. Configuration (environment variables):
 Data layout in DATA_DIR (one folder per map):
   maps/<mapId>/map.json     {id, name, created, updated, demo?}
   maps/<mapId>/floors.json  {"floors": [{id, name, elev, extent:[x0,y0,x1,y1], plan, demo?}]}
-  maps/<mapId>/rooms.json   {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1}],
+  maps/<mapId>/rooms.json   {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1, pts?}],
+                            pts = corner points [[x, y], ...] for shapes drawn corner by corner (x0..y1 = their bounds)
                              "walls": [{id, floor, x0, y0, x1, y1, t}]}
                             type: room | bathroom | walkway | garden | balcony | stair | elevator | empty (opening to the floor below)
                             walkways, gardens and balconies that touch form one connected outdoor/circulation area
@@ -163,7 +164,15 @@ def clean_floor(f):
 
 
 def clean_room(r):
-    if not isinstance(r, dict) or not all(num(r.get(k)) for k in ('x0', 'y0', 'x1', 'y1')):
+    if not isinstance(r, dict):
+        raise ValueError('room must be an object')
+    pts = r.get('pts')
+    if pts is not None:                    # shape drawn corner by corner; x0..y1 become its bounding box
+        if not (isinstance(pts, list) and 3 <= len(pts) <= 500 and all(isinstance(p, list) and len(p) == 2 and num(p[0]) and num(p[1]) for p in pts)):
+            raise ValueError('room pts must be 3-500 [x, y] points')
+        pts = [[float(x), float(y)] for x, y in pts]
+        r = {**r, 'x0': min(p[0] for p in pts), 'y0': min(p[1] for p in pts), 'x1': max(p[0] for p in pts), 'y1': max(p[1] for p in pts)}
+    if not all(num(r.get(k)) for k in ('x0', 'y0', 'x1', 'y1')):
         raise ValueError('room needs numeric x0, y0, x1, y1')
     kind = r.get('type') or 'room'
     if kind not in ROOM_TYPES:
@@ -171,6 +180,8 @@ def clean_room(r):
     out = {'id': str(r.get('id', ''))[:40], 'floor': str(r.get('floor', ''))[:40], 'type': kind,
            'no': str(r.get('no', ''))[:40], 'name': str(r.get('name', ''))[:120],
            **{k: float(r[k]) for k in ('x0', 'y0', 'x1', 'y1')}}
+    if pts is not None:
+        out['pts'] = pts
     if r.get('demo'):
         out['demo'] = True
     return out

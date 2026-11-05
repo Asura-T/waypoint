@@ -469,7 +469,7 @@ function buildTabs(){
   });
 }
 function setFloor(i){
-  cur = i; selId = null; selWall = null;
+  cur = i; selId = null; selWall = null; poly = null;
   buildTabs(); refreshUI(); updateChrome();
   if (mode === '2d') { Promise.all([loadImg(cur), loadImg(cur-1)]).then(() => { fit(); draw(); }); }
   else view3d.setFloor(i);
@@ -510,6 +510,7 @@ function refreshUI(){
     $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', garden:'e.g. Courtyard', balcony:'e.g. East balcony', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
     if (document.activeElement !== $('iNo')) $('iNo').value = r.no;
     if (document.activeElement !== $('iName')) $('iName').value = r.name;
+    $('iW').closest('.field').style.display = r.pts ? 'none' : '';    // corner-drawn shapes are resized by their dots
     if (document.activeElement !== $('iW')) $('iW').value = +(r.x1-r.x0).toFixed(2);
     if (document.activeElement !== $('iD')) $('iD').value = +(r.y1-r.y0).toFixed(2);
     validate(r);
@@ -601,6 +602,24 @@ function drawPlan(f, alpha=1){
   ctx.globalAlpha = 1;
 }
 const scrRect = r => { const [a,b] = toScr(r.x0,r.y0); return [a, b, (r.x1-r.x0)*view.s, (r.y1-r.y0)*view.s]; };
+// shapes drawn corner by corner keep their corners in r.pts (x0..y1 = bounds); everything else is a plain box
+const cornersOf = r => r.pts || [[r.x0,r.y0],[r.x1,r.y0],[r.x1,r.y1],[r.x0,r.y1]];
+function pathOf(r){ cornersOf(r).forEach(([x,y], i) => { const [p,q] = toScr(x,y); i ? ctx.lineTo(p,q) : ctx.moveTo(p,q); }); ctx.closePath(); }
+function syncBox(r){ if (!r.pts) return; const xs = r.pts.map(p => p[0]), ys = r.pts.map(p => p[1]);
+  r.x0 = Math.min(...xs); r.x1 = Math.max(...xs); r.y0 = Math.min(...ys); r.y1 = Math.max(...ys); }
+const signedArea = pts => pts.reduce((a, [x,y], i) => { const [u,v] = pts[(i+1) % pts.length]; return a + x*v - u*y; }, 0) / 2;
+const boxArea = r => r.pts ? Math.abs(signedArea(r.pts)) : (r.x1-r.x0)*(r.y1-r.y0);
+const orient = pts => signedArea(pts) < 0 ? pts.slice().reverse() : pts;   // same winding as boxes, so 'nonzero' fills join
+function inside(r, x, y){
+  if (!(x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)) return false;
+  if (!r.pts) return true;
+  let c = false;
+  for (let i = 0, j = r.pts.length-1; i < r.pts.length; j = i++) {
+    const [xi,yi] = r.pts[i], [xj,yj] = r.pts[j];
+    if ((yi > y) !== (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi) + xi) c = !c;
+  }
+  return c;
+}
 let hatch = null;
 function hatchPattern(){
   if (hatch) return hatch;
@@ -649,11 +668,16 @@ function draw(){
   if (open.length) {
     for (const t of OPEN) {
       const rs = open.filter(r => typeOf(r) === t); if (!rs.length) continue;
-      ctx.beginPath(); for (const r of rs) ctx.rect(...scrRect(r));
+      ctx.beginPath(); for (const r of rs) pathOf(r);
       ctx.fillStyle = rgba(TYPES[t].color, t === 'garden' ? .3 : .22); ctx.fill('nonzero');
     }
     ctx.lineWidth = 2;
-    for (const [x0,y0,x1,y1,r] of outlineSegments(open)) {
+    for (const r of open.filter(r => r.pts)) {            // corner-drawn shapes keep their own outline
+      ctx.beginPath(); pathOf(r); ctx.strokeStyle = TYPES[typeOf(r)].color;
+      if (typeOf(r) === 'balcony') ctx.setLineDash([6,3]);
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    for (const [x0,y0,x1,y1,r] of outlineSegments(open.filter(r => !r.pts))) {
       const [p,q] = toScr(x0,y0), [u,v] = toScr(x1,y1);
       ctx.beginPath(); ctx.moveTo(p,q); ctx.lineTo(u,v); ctx.strokeStyle = TYPES[typeOf(r)].color;
       if (typeOf(r) === 'balcony') ctx.setLineDash([6,3]);          // railing edge
@@ -664,30 +688,30 @@ function draw(){
   for (const r of list) {
     const t = typeOf(r); if (t === 'empty' || OPEN.has(t)) continue;
     const [a,b,w,h] = scrRect(r), c = TYPES[t].color, missing = t === 'room' && !r.no;
-    ctx.fillStyle = rgba(c, t === 'room' ? .16 : .26); ctx.fillRect(a,b,w,h);
+    ctx.beginPath(); pathOf(r); ctx.fillStyle = rgba(c, t === 'room' ? .16 : .26); ctx.fill();
     if (t === 'stair') {                                  // tread lines
-      ctx.save(); ctx.beginPath(); ctx.rect(a,b,w,h); ctx.clip(); ctx.beginPath();
+      ctx.save(); ctx.beginPath(); pathOf(r); ctx.clip(); ctx.beginPath();
       const step = Math.max(5, 0.3*view.s); if (w >= h) for (let x = a+step; x < a+w; x += step) { ctx.moveTo(x,b); ctx.lineTo(x,b+h); } else for (let y = b+step; y < b+h; y += step) { ctx.moveTo(a,y); ctx.lineTo(a+w,y); }
       ctx.strokeStyle = rgba(c, .5); ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
     }
-    if (t === 'elevator') { ctx.beginPath(); ctx.moveTo(a,b); ctx.lineTo(a+w,b+h); ctx.moveTo(a+w,b); ctx.lineTo(a,b+h); ctx.strokeStyle = rgba(c,.5); ctx.lineWidth = 1; ctx.stroke(); }
+    if (t === 'elevator' && !r.pts) { ctx.beginPath(); ctx.moveTo(a,b); ctx.lineTo(a+w,b+h); ctx.moveTo(a+w,b); ctx.lineTo(a,b+h); ctx.strokeStyle = rgba(c,.5); ctx.lineWidth = 1; ctx.stroke(); }
     if (missing) ctx.setLineDash([6,4]);
-    ctx.lineWidth = 1.6; ctx.strokeStyle = missing ? '#ff5d73' : c; ctx.strokeRect(a,b,w,h); ctx.setLineDash([]);
+    ctx.lineWidth = 1.6; ctx.strokeStyle = missing ? '#ff5d73' : c; ctx.beginPath(); pathOf(r); ctx.stroke(); ctx.setLineDash([]);
   }
   // empty: show what the hole opens onto (the floor below, or further down through more openings),
   // including the gardens / walkways / rooms drawn there
   for (const r of of('empty')) {
     const [a,b,w,h] = scrRect(r), to = openTo(r, cur);
-    ctx.save(); ctx.beginPath(); ctx.rect(a,b,w,h); ctx.clip();
+    ctx.save(); ctx.beginPath(); pathOf(r); ctx.clip();
     ctx.fillStyle = '#1a1e27'; ctx.fillRect(a,b,w,h);
     if (to) {
       if (!imgs[planUrl(floors[to.fi])]) loadImg(to.fi).then(draw);     // first time: fetch that floor's plan, then redraw
       drawPlan(floors[to.fi], .85);
-      for (const o of to.boxes) { ctx.fillStyle = rgba(TYPES[typeOf(o)].color, .35); ctx.fillRect(...scrRect(o)); }
+      for (const o of to.boxes) { ctx.fillStyle = rgba(TYPES[typeOf(o)].color, .35); ctx.beginPath(); pathOf(o); ctx.fill(); }
       ctx.fillStyle = 'rgba(20,24,32,.18)'; ctx.fillRect(a,b,w,h);
     } else { ctx.fillStyle = hatchPattern(); ctx.fillRect(a,b,w,h); }
     ctx.restore();
-    ctx.setLineDash([7,5]); ctx.lineWidth = 2; ctx.strokeStyle = '#5b6375'; ctx.strokeRect(a,b,w,h); ctx.setLineDash([]);
+    ctx.setLineDash([7,5]); ctx.lineWidth = 2; ctx.strokeStyle = '#5b6375'; ctx.beginPath(); pathOf(r); ctx.stroke(); ctx.setLineDash([]);
   }
   const holes = of('empty'), inHole = r => typeOf(r) !== 'empty' && holes.some(e => r.x0 >= e.x0 && r.x1 <= e.x1 && r.y0 >= e.y0 && r.y1 <= e.y1);
   for (const r of list) if (r.id === selId || !inHole(r)) label(r, r.id === selId);
@@ -707,13 +731,14 @@ function draw(){
     ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(txt, p, q-8); ctx.fillStyle = '#5c4300'; ctx.fillText(txt, p, q-8);
   }
+  if (!exporting) drawCorners();
   if (drag && drag.snapPt) { const [p,q] = toScr(...drag.snapPt); ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p,q,8,0,7); ctx.stroke(); }
   // selection on top
   const sr = selId && list.find(r => r.id === selId);
   if (sr) {
-    const [a,b,w,h] = scrRect(sr);
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffd23f'; ctx.strokeRect(a,b,w,h);
-    handles(sr).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.5; ctx.fillRect(p-5,q-5,10,10); ctx.strokeRect(p-5,q-5,10,10); });
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffd23f'; ctx.beginPath(); pathOf(sr); ctx.stroke();
+    handles(sr).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.5;
+      if (sr.pts) { ctx.beginPath(); ctx.arc(p,q,6,0,7); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(p-5,q-5,10,10); ctx.strokeRect(p-5,q-5,10,10); } });
   }
   if (drag && drag.guides) {                             // snap guides
     ctx.setLineDash([4,4]); ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 1; ctx.beginPath();
@@ -737,13 +762,14 @@ function placeBar(r){
 }
 $('ecClose').onclick = () => finishEdit();
 const HN = ['nw','n','ne','e','se','s','sw','w'];
-function handles(r){ const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
+function handles(r){ if (r.pts) return r.pts; const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
   return [[r.x0,r.y0],[mx,r.y0],[r.x1,r.y0],[r.x1,my],[r.x1,r.y1],[mx,r.y1],[r.x0,r.y1],[r.x0,my]]; }
 const CURSOR = {nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize'};
 function hitHandle(sx,sy){
   const r = selId && byId(selId); if (!r || !floors[cur] || r.floor !== floors[cur].id) return null;
   const k = handles(r).findIndex(([hx,hy]) => { const [p,q] = toScr(hx,hy); return Math.abs(p-sx) < 9 && Math.abs(q-sy) < 9; });
-  if (k >= 0) return HN[k];
+  if (k >= 0) return r.pts ? 'v' + k : HN[k];                // corner-drawn shape: drag a corner dot
+  if (r.pts) return null;
   // anywhere along an edge of the selected box also resizes
   const [a,b,w,h] = scrRect(r), inX = sx > a && sx < a+w, inY = sy > b && sy < b+h;
   if (inY && Math.abs(sx-a) < 6) return 'w'; if (inY && Math.abs(sx-a-w) < 6) return 'e';
@@ -753,7 +779,7 @@ function hitHandle(sx,sy){
 function hitRoom(wx,wy){
   const fr = floorRooms(cur);
   // smallest box under the cursor wins, so rooms drawn inside larger areas stay clickable
-  return fr.filter(r => wx>=r.x0 && wx<=r.x1 && wy>=r.y0 && wy<=r.y1).sort((a,b)=>(a.x1-a.x0)*(a.y1-a.y0)-(b.x1-b.x0)*(b.y1-b.y0))[0];
+  return fr.filter(r => inside(r, wx, wy)).sort((a,b) => boxArea(a) - boxArea(b))[0];
 }
 // snapping: pull a moving edge onto a nearby edge of another box on this floor
 function snapAxis(v, ax, skipId, guides){
@@ -787,7 +813,7 @@ function snapPoint(x, y, skipId, from, free){
   let best = null, bd = lim;
   for (const w of floorWalls(cur)) { if (w.id === skipId) continue;
     for (const end of [0,1]) { const d = Math.hypot(w['x'+end]-x, w['y'+end]-y); if (d < bd) { bd = d; best = [w['x'+end], w['y'+end]]; } } }
-  for (const r of floorRooms(cur)) for (const [cx,cy] of [[r.x0,r.y0],[r.x1,r.y0],[r.x0,r.y1],[r.x1,r.y1]]) { const d = Math.hypot(cx-x, cy-y); if (d < bd) { bd = d; best = [cx,cy]; } }
+  for (const r of floorRooms(cur)) for (const [cx,cy] of cornersOf(r)) { const d = Math.hypot(cx-x, cy-y); if (d < bd) { bd = d; best = [cx,cy]; } }
   if (best) return {x:best[0], y:best[1], guides:g, pt:best};
   if (from && !free) {                                   // keep walls straight: lock to horizontal / vertical near 0° / 90°
     const ang = Math.abs(Math.atan2(y - from[1], x - from[0])) * 180/Math.PI;
@@ -798,11 +824,84 @@ function snapPoint(x, y, skipId, from, free){
 const roundW = w => ['x0','y0','x1','y1'].forEach(k => w[k] = Math.round(w[k]*100)/100);
 
 let tool = 'draw', space = false, drag = null;
+
+// ---------- Corners mode: click a dot on each corner; the dots join into a shape (boxes) or walls ----------
+let shapeMode = 'box';          // 'box' = drag a rectangle, 'corners' = click corner by corner
+let poly = null;                // shape being drawn: {kind:'box'|'wall', pts:[[x,y]...]}
+let cornerHover = null;         // {x, y, pt, near} where the next dot would go
+function setShape(m){ shapeMode = m; poly = null; cornerHover = null; renderPalette(); updateHint(); draw(); }
+function cornerPoint(wx, wy, e){
+  const prev = poly && poly.pts[poly.pts.length-1];
+  if (e.altKey) return {x:wx, y:wy, pt:null};
+  const sp = snapPoint(wx, wy, null, prev, e.shiftKey);
+  if (!sp.pt && poly && !e.shiftKey) {                   // also line up with earlier dots of this shape, so it closes square
+    const lim = 8 / view.s;
+    for (const [px,py] of poly.pts.slice(0, -1)) { if (Math.abs(px - sp.x) < lim) sp.x = px; if (Math.abs(py - sp.y) < lim) sp.y = py; }
+  }
+  return sp;
+}
+const nearFirst = (sx, sy) => { if (!poly || !poly.pts.length) return false; const [p,q] = toScr(...poly.pts[0]); return Math.hypot(p-sx, q-sy) < 11; };
+function cornerMove(wx, wy, sx, sy, e){
+  const sp = cornerPoint(wx, wy, e), near = nearFirst(sx, sy) && poly.pts.length >= (poly.kind === 'box' ? 3 : 2);
+  cornerHover = {x: near ? poly.pts[0][0] : sp.x, y: near ? poly.pts[0][1] : sp.y, pt: sp.pt, near};
+  cv.style.cursor = near ? 'pointer' : 'crosshair'; draw();
+}
+function cornerClick(wx, wy, e){
+  if (!poly) { poly = {kind: tool === 'wall' ? 'wall' : 'box', pts: []}; selId = selWall = null; refreshUI(); }
+  if (nearFirst(e.offsetX, e.offsetY) && poly.pts.length >= (poly.kind === 'box' ? 3 : 2)) return finishCorners(true);
+  const sp = cornerPoint(wx, wy, e), last = poly.pts[poly.pts.length-1];
+  if (last && Math.hypot(last[0]-sp.x, last[1]-sp.y)*view.s < 4) return;          // second click of a double-click
+  poly.pts.push([sp.x, sp.y]); draw();
+}
+function finishCorners(closed){
+  const p = poly; poly = null; cornerHover = null;
+  if (!p) return draw();
+  const pts = p.pts.map(([x,y]) => [Math.round(x*100)/100, Math.round(y*100)/100]);
+  if (p.kind === 'box') {
+    if (pts.length < 3 || Math.abs(signedArea(pts)) < 0.2) { toast('A shape needs at least 3 corners.'); return draw(); }
+    const r = {id:uid(), floor:floors[cur].id, type:drawType, no:'', name:'', pts:orient(pts)}; syncBox(r);
+    snapshot(); if (r.type === 'room') r.no = suggestNo(); rooms.push(r); afterChange(); selectRoom(r.id, r.type === 'room');
+  } else {
+    if (pts.length < 2) return draw();
+    const segs = pts.slice(1).map((q, i) => [pts[i], q]); if (closed && pts.length > 2) segs.push([pts[pts.length-1], pts[0]]);
+    snapshot();
+    for (const [[x0,y0],[x1,y1]] of segs) if (Math.hypot(x1-x0, y1-y0) > 0.05) walls.push({id:uid(), floor:floors[cur].id, x0, y0, x1, y1, t:wallT});
+    afterChange(); toast(`${segs.length} wall${segs.length > 1 ? 's' : ''} added.`);
+  }
+}
+function drawCorners(){
+  if (shapeMode !== 'corners' || !(tool === 'draw' || tool === 'wall')) return;
+  const color = tool === 'wall' ? '#273244' : TYPES[drawType].color;
+  const pts = poly ? poly.pts.slice() : [];
+  const live = cornerHover ? [...pts, [cornerHover.x, cornerHover.y]] : pts;
+  if (live.length > 1) {
+    ctx.beginPath(); live.forEach(([x,y], i) => { const [p,q] = toScr(x,y); i ? ctx.lineTo(p,q) : ctx.moveTo(p,q); });
+    if (tool !== 'wall' && live.length > 2) { ctx.save(); ctx.closePath(); ctx.fillStyle = rgba(color, .18); ctx.fill(); ctx.restore(); }
+    ctx.lineWidth = tool === 'wall' ? Math.max(2, wallT*view.s) : 2.5; ctx.strokeStyle = color; ctx.lineCap = 'square'; ctx.stroke(); ctx.lineCap = 'butt';
+    if (cornerHover && pts.length) {                     // length of the side being drawn
+      const [a,b] = pts[pts.length-1], [p,q] = toScr((a+cornerHover.x)/2, (b+cornerHover.y)/2), txt = Math.hypot(cornerHover.x-a, cornerHover.y-b).toFixed(2) + ' m';
+      ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(txt, p, q-8); ctx.fillStyle = '#1b2333'; ctx.fillText(txt, p, q-8);
+    }
+  }
+  pts.forEach(([x,y], i) => {
+    const [p,q] = toScr(x,y); ctx.beginPath(); ctx.arc(p, q, i === 0 ? 7 : 5, 0, 7);
+    ctx.fillStyle = i === 0 && cornerHover?.near ? '#ffd23f' : '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.stroke();
+  });
+  if (cornerHover) {
+    const [p,q] = toScr(cornerHover.x, cornerHover.y);
+    ctx.beginPath(); ctx.arc(p, q, 4, 0, 7); ctx.fillStyle = color; ctx.fill();
+    if (cornerHover.pt) { ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p, q, 9, 0, 7); ctx.stroke(); }
+  }
+}
+cv.addEventListener('dblclick', () => { if (poly) finishCorners(poly.kind === 'box'); });
+cv.addEventListener('pointerleave', () => { if (cornerHover) { cornerHover = null; draw(); } });
 // tool palette: Select, one button per box type, Wall, Pan
 function renderPalette(){
   const items = [{t:'select', label:'Select', key:'V', ic:'↖'}, '-',
     ...TYPE_KEYS.map((k, i) => ({t:'draw', type:k, label:TYPES[k].label, key:String(i+1), color:TYPES[k].color})), '-',
-    {t:'wall', label:'Wall', key:'W', ic:'▬'}, {t:'pan', label:'Pan', key:'H', ic:'✋'}];
+    {t:'wall', label:'Wall', key:'W', ic:'▬'}, {t:'pan', label:'Pan', key:'H', ic:'✋'}, '-',
+    {shape:'box', label:'Drag a box', key:'C', ic:'▭'}, {shape:'corners', label:'Click corners', key:'C', ic:'⬠'}];
   const el = $('palette'); el.innerHTML = '';
   for (const it of items) {
     if (it === '-') { el.insertAdjacentHTML('beforeend', '<div class="div"></div>'); continue; }
@@ -812,12 +911,17 @@ function renderPalette(){
     if (it.color) ic.style.background = it.color; else ic.textContent = it.ic;
     b.querySelector('.lb').textContent = it.label;
     b.title = it.t === 'draw' ? `Draw a ${it.label.toLowerCase()} (${it.key})` : `${it.label} (${it.key})`;
+    if (it.shape) {                                       // how the drawing tools work: drag a rectangle, or click corners
+      b.title = it.shape === 'box' ? 'Drag to draw a rectangle (C switches)' : 'Click a dot on each corner, then click the first dot to finish (C switches)';
+      b.classList.toggle('on', shapeMode === it.shape); b.onclick = () => setShape(it.shape);
+      el.appendChild(b); continue;
+    }
     b.classList.toggle('on', it.t === tool && (it.t !== 'draw' || it.type === drawType));
     b.onclick = () => it.t === 'draw' ? setDrawType(it.type) : setTool(it.t);
     el.appendChild(b);
   }
 }
-function setTool(t){ tool = t; renderPalette(); setTimeout(updateHint); cv.style.cursor = t === 'pan' ? 'grab' : t === 'select' ? 'default' : 'crosshair'; }
+function setTool(t){ tool = t; poly = null; cornerHover = null; renderPalette(); setTimeout(updateHint); cv.style.cursor = t === 'pan' ? 'grab' : t === 'select' ? 'default' : 'crosshair'; }
 function zoomBy(k){ const cx = cv.clientWidth/2, cy = cv.clientHeight/2, s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
   view.ox = cx - (cx - view.ox)*f; view.oy = cy - (cy - view.oy)*f; view.s = s; draw(); }
 $('bZoomIn').onclick = () => zoomBy(1.4); $('bZoomOut').onclick = () => zoomBy(1/1.4);
@@ -827,7 +931,7 @@ $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function cancelDrag(){
   const d = drag; if (!d) return; drag = null;
-  if ((d.kind === 'move' || d.kind === 'resize') && d.moved) { Object.assign(d.r, d.orig); undoStack.pop(); }
+  if ((d.kind === 'move' || d.kind === 'resize' || d.kind === 'vertex') && d.moved) { Object.assign(d.r, d.orig); undoStack.pop(); }
   if ((d.kind === 'wallEnd' || d.kind === 'moveWall') && d.moved) { Object.assign(d.w, d.orig); undoStack.pop(); }
   setTool(tool); draw();
 }
@@ -839,6 +943,7 @@ cv.addEventListener('pointerdown', e => {
   if (!floors[cur]) return;
   if (align) { drag = {kind:'align', sx, sy, dx0:align.dx, dy0:align.dy}; cv.style.cursor = 'grabbing'; return; }
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+  if (shapeMode === 'corners' && (tool === 'draw' || tool === 'wall')) { cornerClick(wx, wy, e); return; }
   // with the Wall tool, pressing on a wall end starts a new, connected wall; otherwise it moves that end
   const we = tool === 'wall' ? null : hitWallEnd(sx,sy);
   if (we) { drag = {kind:'wallEnd', w:we.w, end:we.end, orig:{...we.w}, moved:false}; return; }
@@ -850,34 +955,35 @@ cv.addEventListener('pointerdown', e => {
     draw(); return;
   }
   const h = hitHandle(sx,sy);
-  if (h) { const r = byId(selId); drag = {kind:'resize', h, r, orig:{...r}, moved:false}; return; }
+  if (h) { const r = byId(selId); drag = {kind: h[0] === 'v' ? 'vertex' : 'resize', h, r, orig:structuredClone(r), moved:false}; return; }
   if (tool === 'select') {                               // Select: click picks, drag moves, drag on empty space pans
     if (hw) { selectWall(hw.id); drag = {kind:'moveWall', w:hw, wx, wy, orig:{...hw}, moved:false}; return; }
     const r = hitRoom(wx,wy);
-    if (r) { selectRoom(r.id); drag = {kind:'move', r, wx, wy, orig:{...r}, moved:false}; return; }
+    if (r) { selectRoom(r.id); drag = {kind:'move', r, wx, wy, orig:structuredClone(r), moved:false}; return; }
     selId = selWall = null; refreshUI(); drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor = 'grabbing'; return;
   }
   // a selected box is moved by dragging it; dragging anywhere else (even over another box) draws a new box,
   // and a plain click on a box selects it
   const r = hitRoom(wx,wy), sel = selId && byId(selId);
-  if (sel && sel.floor === floors[cur].id && wx>=sel.x0 && wx<=sel.x1 && wy>=sel.y0 && wy<=sel.y1) { drag = {kind:'move', r:sel, wx, wy, orig:{...sel}, moved:false}; return; }
+  if (sel && sel.floor === floors[cur].id && inside(sel, wx, wy)) { drag = {kind:'move', r:sel, wx, wy, orig:structuredClone(sel), moved:false}; return; }
   const g = {x:[], y:[]}, x = e.altKey ? wx : snapAxis(wx,'x',null,g), y = e.altKey ? wy : snapAxis(wy,'y',null,g);
   drag = {kind:'new', clickPick:r, clickWall:hw, wx:x, wy:y, guides:g, r:{id:uid(), floor:floors[cur].id, type:drawType, no:'', name:'', x0:x, y0:y, x1:x, y1:y}};
   draw();
 });
 cv.addEventListener('pointermove', e => {
   const sx = e.offsetX, sy = e.offsetY; let [wx,wy] = toW(sx,sy);
+  if (!drag && shapeMode === 'corners' && (tool === 'draw' || tool === 'wall') && !space) { cornerMove(wx, wy, sx, sy, e); return; }
   if (!drag) {
     if (space || tool==='pan') return;
     if (align) { cv.style.cursor = 'move'; return; }
     if (tool !== 'wall' && hitWallEnd(sx,sy)) { cv.style.cursor = 'grab'; return; }
     const hw = hitWall(sx,sy);
     if (tool === 'wall') { cv.style.cursor = 'crosshair'; return; }
-    if (tool === 'select') { cv.style.cursor = hitHandle(sx,sy) ? CURSOR[hitHandle(sx,sy)] : hitWall(sx,sy) || hitRoom(wx,wy) ? 'move' : 'grab'; return; }
+    if (tool === 'select') { const hh = hitHandle(sx,sy); cv.style.cursor = hh ? CURSOR[hh] || 'grab' : hitWall(sx,sy) || hitRoom(wx,wy) ? 'move' : 'grab'; return; }
     if (hw) { cv.style.cursor = hw.id === selWall ? 'move' : 'pointer'; return; }
     const h = hitHandle(sx,sy), sel = selId && byId(selId);
-    const onSel = sel && sel.floor === floors[cur]?.id && wx>=sel.x0 && wx<=sel.x1 && wy>=sel.y0 && wy<=sel.y1;
-    cv.style.cursor = h ? CURSOR[h] : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
+    const onSel = sel && sel.floor === floors[cur]?.id && inside(sel, wx, wy);
+    cv.style.cursor = h ? CURSOR[h] || 'grab' : onSel ? 'move' : hitRoom(wx,wy) ? 'pointer' : 'crosshair'; return;
   }
   if (drag.kind === 'pan') { view.ox = drag.ox + sx - drag.sx; view.oy = drag.oy + sy - drag.sy; draw(); return; }
   if (drag.kind === 'align') { align.dx = drag.dx0 + (sx-drag.sx)/view.s; align.dy = drag.dy0 + (sy-drag.sy)/view.s; applyAlign(); draw(); return; }
@@ -914,6 +1020,11 @@ cv.addEventListener('pointermove', e => {
       }
     }
     r.x0=o.x0+dx; r.x1=o.x1+dx; r.y0=o.y0+dy; r.y1=o.y1+dy;
+    if (o.pts) r.pts = o.pts.map(([x,y]) => [x+dx, y+dy]);
+  } else if (drag.kind === 'vertex') {
+    const k = +drag.h.slice(1), n = o.pts.length;
+    const sp = e.altKey ? {x:wx, y:wy, pt:null} : snapPoint(wx, wy, r.id, o.pts[(k-1+n) % n], e.shiftKey);
+    r.pts = o.pts.map((p, i) => i === k ? [sp.x, sp.y] : p); syncBox(r); drag.snapPt = sp.pt;
   } else {
     if (snap) { wx = snapAxis(wx,'x',skip,g); wy = snapAxis(wy,'y',skip,g); }
     if (!drag.h.includes('w') && !drag.h.includes('e')) g.x.length = 0;
@@ -946,7 +1057,8 @@ cv.addEventListener('pointerup', () => {
   }
   if (d.moved) { round(d.r); afterChange(); } else draw();
 });
-const round = r => ['x0','y0','x1','y1'].forEach(k => r[k] = Math.round(r[k]*100)/100);
+const round = r => { if (r.pts) { r.pts = orient(r.pts.map(([x,y]) => [Math.round(x*100)/100, Math.round(y*100)/100])); syncBox(r); }
+  else ['x0','y0','x1','y1'].forEach(k => r[k] = Math.round(r[k]*100)/100); };
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
@@ -966,6 +1078,12 @@ addEventListener('keydown', e => {
     else return;
     e.preventDefault(); applyAlign(); draw(); return;
   }
+  if (poly) {
+    if (e.key === 'Enter') { finishCorners(poly.kind === 'box'); e.preventDefault(); return; }
+    if (e.key === 'Escape') { poly = null; draw(); return; }
+    if (e.key === 'Backspace' || e.key === 'Delete') { poly.pts.pop(); if (!poly.pts.length) poly = null; draw(); e.preventDefault(); return; }
+  }
+  if (e.key === 'c') { setShape(shapeMode === 'box' ? 'corners' : 'box'); return; }
   if (e.key === 'a') { startAlign(); return; }
   if (e.key === 'Escape') { if (drag) cancelDrag(); else { selId = selWall = null; refreshUI(); draw(); } return; }
   if (e.code === 'Space') { space = true; cv.style.cursor = 'grab'; e.preventDefault(); }
@@ -1355,7 +1473,7 @@ function applyAlign(){
   const f = floors[align.fi], o = align.orig, [a0,b0,a1,b1] = o.extent, cx = (a0+a1)/2, cy = (b0+b1)/2, k = align.k;
   const T = (x,y) => [cx + (x-cx)*k + align.dx, cy + (y-cy)*k + align.dy];
   [f.extent[0], f.extent[1]] = T(a0,b0); [f.extent[2], f.extent[3]] = T(a1,b1);
-  for (const r0 of o.rooms) { const r = byId(r0.id); if (!r) continue; [r.x0,r.y0] = T(r0.x0,r0.y0); [r.x1,r.y1] = T(r0.x1,r0.y1); }
+  for (const r0 of o.rooms) { const r = byId(r0.id); if (!r) continue; [r.x0,r.y0] = T(r0.x0,r0.y0); [r.x1,r.y1] = T(r0.x1,r0.y1); if (r0.pts) { r.pts = r0.pts.map(([x,y]) => T(x,y)); syncBox(r); } }
   for (const w0 of o.walls) { const w = wallById(w0.id); if (!w) continue; [w.x0,w.y0] = T(w0.x0,w0.y0); [w.x1,w.y1] = T(w0.x1,w0.y1); }
 }
 async function endAlign(save){
@@ -1382,6 +1500,8 @@ function updateHint(){
   if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> · edit it in the card · drag to move · drag edges to resize · <b>Del</b> deletes · <b>Esc</b> closes`;
   else if (sw) t = `<b>Wall</b> · drag it or its round ends · thickness in the card · <b>Del</b> deletes · <b>Esc</b> closes`;
   else if (tool === 'select') t = `<b>Select</b> · click a box or wall to edit it · drag to move · drag empty space to pan · pick a type on the left to draw`;
+  else if (shapeMode === 'corners' && (tool === 'draw' || tool === 'wall'))
+    t = `<b>Click corners${tool === 'wall' ? ' · walls' : ' · ' + esc(TYPES[drawType].label.toLowerCase())}</b> · click a dot on each corner · click the first dot (or <b>Enter</b> / double-click) to finish · <b>Backspace</b> removes the last dot · <b>Esc</b> cancels · <b>C</b> back to drag`;
   else if (tool === 'wall') t = `<b>Wall</b> · drag from one end to the other · start on a wall's end to continue it · <b>Shift</b> any angle · <b>V</b> select`;
   else if (tool === 'pan') t = `<b>Pan</b> · drag to move around · scroll to zoom · <b>V</b> select`;
   else t = `<b>Draw ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · click an existing box to edit it · <b>V</b> select · scroll to zoom`;
@@ -1419,7 +1539,7 @@ const view3d = (() => {
         }
         const t = typeOf(r);
         tip.querySelector('b').textContent = [r.no, r.name].filter(Boolean).join(' · ') || TYPES[t].label;
-        tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${TYPES[t].label}${t === 'empty' ? ' · ' + openToText(r, m.userData.fi).toLowerCase() : ''} · ${((r.x1-r.x0)*(r.y1-r.y0)).toFixed(1)} m²`;
+        tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${TYPES[t].label}${t === 'empty' ? ' · ' + openToText(r, m.userData.fi).toLowerCase() : ''} · ${boxArea(r).toFixed(1)} m²`;
         tip.style.display = 'block'; tip.style.left = Math.min(e.clientX+14, innerWidth-260)+'px'; tip.style.top = (e.clientY+14)+'px';
         dom.style.cursor = 'pointer';
       } else { tip.style.display = 'none'; dom.style.cursor = ''; }
@@ -1458,7 +1578,7 @@ const view3d = (() => {
       if (holes.length) {
         const c = document.createElement('canvas'); c.width = 1024; c.height = Math.max(1, Math.round(1024*(y1-y0)/(x1-x0)));
         const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.fillStyle = '#000';
-        for (const r of holes) x.fillRect((r.x0-x0)/(x1-x0)*c.width, (r.y0-y0)/(y1-y0)*c.height, (r.x1-r.x0)/(x1-x0)*c.width, (r.y1-r.y0)/(y1-y0)*c.height);
+        for (const r of holes) { x.beginPath(); cornersOf(r).forEach(([px,py], i) => x[i ? 'lineTo' : 'moveTo']((px-x0)/(x1-x0)*c.width, (py-y0)/(y1-y0)*c.height)); x.closePath(); x.fill(); }
         mat.alphaMap = new T.CanvasTexture(c); mat.alphaTest = 0.02;
       }
       const plane = new T.Mesh(new T.PlaneGeometry(x1-x0,y1-y0), mat);
@@ -1488,7 +1608,11 @@ const view3d = (() => {
     for (const r of rooms) {
       const fi = floors.findIndex(f => f.id === r.floor); if (fi < 0) continue;
       const t = typeOf(r), g = groups[fi], w = r.x1-r.x0, d = r.y1-r.y0;
-      const geo = new T.BoxGeometry(w, 1, d); geo.translate(0, .5, 0);
+      let geo;
+      if (r.pts) {                                         // corner-drawn shape: extrude its outline, 0..1 high like the boxes
+        geo = new T.ExtrudeGeometry(new T.Shape(r.pts.map(([x,y]) => new T.Vector2(x-(r.x0+r.x1)/2, y-(r.y0+r.y1)/2))), {depth:1, bevelEnabled:false});
+        geo.rotateX(Math.PI/2); geo.translate(0, 1, 0);
+      } else { geo = new T.BoxGeometry(w, 1, d); geo.translate(0, .5, 0); }
       const col = new T.Color(t === 'room' && !r.no ? '#ff5d73' : TYPES[t].color);
       const m = new T.Mesh(geo, new T.MeshStandardMaterial({color:col, transparent:true, opacity:OPACITY[t], depthWrite:false, side: t === 'empty' ? T.DoubleSide : T.FrontSide}));
       // open areas get one shared outline per floor (below) so touching pieces read as one area
@@ -1601,7 +1725,7 @@ const view3d = (() => {
 async function setMode(m){
   mode = m; document.body.classList.toggle('mode3d', m === '3d');
   $('mDraw').classList.toggle('on', m === '2d'); $('m3d').classList.toggle('on', m === '3d');
-  if (m === '3d') { cv.style.display = 'none'; $('emptyMain').style.display = 'none'; selId = null; buildTabs(); refreshUI(); await view3d.show(); }
+  if (m === '3d') { cv.style.display = 'none'; $('emptyMain').style.display = 'none'; selId = selWall = null; poly = null; bar.style.display = 'none'; buildTabs(); refreshUI(); await view3d.show(); }
   else { view3d.hide(); cv.style.display = 'block'; if (cur < 0) cur = 0; buildTabs(); refreshUI(); updateChrome(); resize(); await Promise.all([loadImg(cur), loadImg(cur-1)]); fit(); }
 }
 $('mDraw').onclick = () => setMode('2d');
