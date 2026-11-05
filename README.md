@@ -15,13 +15,14 @@ Keep as many **maps** as you like (one per building or site). For each floor you
 - **⇲ Align** (<kbd>A</kbd>): lays the floor below over the current one in red. Drag the plan (or use the arrow keys) until they match; <kbd>[</kbd> and <kbd>]</kbd> fine-tune the scale. Rooms and walls already drawn on that floor move with it.
 - **Hint bar**: the line at the bottom of the plan always says what the current tool does and which keys work.
 
+- **Tool palette** (left of the plan): **Select** (<kbd>V</kbd>) to click, move and resize without drawing by accident, and to pan by dragging empty space. One button per box type (<kbd>1</kbd>–<kbd>8</kbd>), plus **Wall** (<kbd>W</kbd>) and **Pan** (<kbd>H</kbd>). Selecting a box or wall opens an **edit card right next to it** for type, number, name, size or thickness. Zoom, Fit and Align are at the bottom right. **☰ List** shows or hides the box list, which has a search box.
 - **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
 - **Box types**:
   - **Room**: needs a room number. The name is optional.
   - **Bathroom**: toilets and washrooms. The number is optional.
-  - **Walkway**: corridors and paths. Walkway boxes that touch join into one connected path, in both the 2D and 3D views.
+  - **Walkway**, **Garden**, **Balcony**: open areas. Any of them that touch, such as a garden next to a walkway, join into one connected area with a single outline, in 2D and 3D. Balconies get a railing in 3D.
   - **Stair / Elevator**: drawn as shafts that reach up to the next floor in 3D.
-  - **Empty**: an opening in the floor, such as an atrium or void. It cuts a hole in the floor plan, so the floor below shows through, in 2D and 3D.
+  - **Empty**: an opening in the floor, such as an atrium or void. It cuts a hole in the floor and shows what it opens onto, for example "Open to GF garden". If the floor below is open there too, it looks further down. In 3D the opening reaches down to that floor.
 - **Walls** (the **▬ Wall** tool, or <kbd>W</kbd>): drag from one end of a wall to the other. Walls stay straight unless you hold <kbd>Shift</kbd>. Their ends snap onto other walls' ends and box corners, so walls join up. With the Wall tool, start the next wall on the end of the last one to keep drawing joined walls. To move a wall or one of its ends, switch to the Box tool, click the wall, then drag it or its round end handles. Set its thickness in the side panel, or delete it. In 3D, walls stand as tall as the rooms.
 - **3D view**: shows all floors stacked, or one floor on its own. Hover over a room or wall to see its details. Double-click it to edit it.
 - **Floors…**: add, rename or delete floors, upload plan images, and set each floor's height and alignment.

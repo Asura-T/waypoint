@@ -14,14 +14,38 @@
   button:hover{border-color:#3b4252}
   button.on{background:var(--accent);border-color:var(--accent);color:#fff}
   button:disabled{opacity:.4;cursor:default}
-  header{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto}
+  header{position:fixed;top:0;left:0;right:0;min-height:52px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);z-index:7}
   header h1{font-size:15px;margin:0 6px 0 0;white-space:nowrap}
   .grp{display:flex;gap:4px;align-items:center}
   .sep{width:1px;height:26px;background:var(--line);flex:none}
   #status{color:var(--muted);font-size:12px;white-space:nowrap;margin-left:auto}
   #status.bad{color:var(--bad)}
-  aside{position:fixed;top:52px;left:0;bottom:0;width:290px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:4}
-  main{position:fixed;top:52px;left:290px;right:0;bottom:0}
+  aside{position:fixed;top:var(--hh,52px);right:0;bottom:0;width:280px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;z-index:6;transition:transform .18s}
+  main{position:fixed;top:var(--hh,52px);left:0;right:280px;bottom:0}
+  body.list-closed aside{transform:translateX(100%)}
+  body.list-closed main{right:0}
+  #listSearch{width:100%;margin-top:4px;background:#11141a;border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+  details.help summary{cursor:pointer;color:var(--muted);font-size:12px}
+  details.help div{margin-top:6px}
+  .seg{gap:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+  #palette{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:2px;background:rgba(23,26,33,.96);border:1px solid var(--line);border-radius:12px;padding:5px;z-index:3;max-height:calc(100% - 20px);overflow:auto}
+  #palette button{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;padding:6px 9px;text-align:left;font-size:13px}
+  #palette button:hover{background:#252b38}
+  #palette button.on{background:#2b3b5c;border-color:var(--accent)}
+  #palette .ic{width:16px;height:16px;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px}
+  #palette kbd{margin-left:auto;opacity:.6}
+  #palette .div{height:1px;background:var(--line);margin:4px 2px}
+  #zoombar{position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:3}
+  #zoombar button{background:rgba(23,26,33,.96)}
+  #editCard{position:absolute;display:none;width:290px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  #editCard .x{position:absolute;right:6px;top:6px;padding:2px 7px;background:transparent;border-color:transparent}
+  #editCard .types{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+  #editCard .types button{font-size:12px;padding:4px 6px;text-align:left}
+  @media (max-width:900px){
+    aside{transform:translateX(100%)} body.list-open aside{transform:none;box-shadow:-10px 0 30px rgba(0,0,0,.5)} main{right:0}
+    #palette button span.lb,#palette kbd{display:none}
+    header h1,.brand small{display:none}
+  }
   #cv{display:block;width:100%;height:100%;touch-action:none}
   #three{position:absolute;inset:0;display:none}
   .sec{padding:12px 14px;border-bottom:1px solid var(--line)}
@@ -46,10 +70,10 @@
   #tip .m{color:var(--muted);font-size:12px}
   .only3d{display:none}
   body.mode3d .only3d{display:flex}
-  body.mode3d .only2d{display:none}
+  body.mode3d .only2d,body.mode3d #palette,body.mode3d #zoombar,body.mode3d #editCard,body.mode3d #hint{display:none}
   .ctl3d{display:grid;gap:8px}
   .ctl3d label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-  #banner{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:5;background:#3a2a10;border:1px solid #8a6420;color:#ffd79a;border-radius:10px;padding:6px 12px;font-size:13px;pointer-events:none;margin-left:145px}
+  #banner{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:5;background:#3a2a10;border:1px solid #8a6420;color:#ffd79a;border-radius:10px;padding:6px 12px;font-size:13px;pointer-events:none}
   #emptyMain{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;color:var(--muted);flex-direction:column;gap:12px}
   dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;width:min(760px,96vw);max-height:90vh}
   dialog::backdrop{background:rgba(0,0,0,.55)}
@@ -73,11 +97,6 @@
   .types button i,#typePick button i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
   .size{display:flex;align-items:center;gap:6px}
   .size input{width:80px!important}
-  #boxBar{position:absolute;display:none;gap:2px;padding:3px;background:rgba(23,26,33,.96);border:1px solid var(--line);border-radius:10px;z-index:3;transform:translate(-50%,-100%)}
-  #boxBar button{padding:3px 7px;font-size:13px;border-radius:7px;background:transparent;border-color:transparent}
-  #boxBar button:hover{background:#2a3040}
-  #boxBar button.on{background:var(--accent);color:#fff}
-  #boxBar .sep{height:22px;margin:0 2px}
   .room .ic{width:10px;height:10px;border-radius:3px;flex:none;align-self:center}
   .menu{position:relative}
   .pop{display:none;position:fixed;min-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.45)}
@@ -89,10 +108,10 @@
   .brand{background:transparent;border-color:transparent;padding:6px 6px;font-size:15px}
   .brand small{color:var(--muted);font-size:11px;font-weight:400}
   header > *{flex:none}
-  #floorTabs{flex:0 1 auto;min-width:90px;overflow-x:auto;scrollbar-width:thin}
+  #floorTabs{flex:0 1 auto;min-width:90px;max-width:46vw;overflow-x:auto;scrollbar-width:thin}
   .mapname{background:transparent;border-color:transparent;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
   .mapname:hover,.brand:hover{background:#222733}
-  #hint{position:absolute;left:12px;bottom:12px;max-width:min(640px,70%);background:rgba(23,26,33,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);pointer-events:none}
+  #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:min(640px,60%);background:rgba(23,26,33,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);pointer-events:none}
   #hint b{color:var(--text)}
   #alignBar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:6px 8px 6px 12px;z-index:4;font-size:13px}
   #home{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;display:none;padding:28px max(16px,calc(50vw - 560px))}
@@ -127,7 +146,7 @@
   .check{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:4px}
   #dlgWiz{width:min(860px,96vw)}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  @media (max-width:760px){aside{top:auto;height:40%;width:auto;right:0;border-right:0;border-top:1px solid var(--line)}main{left:0;bottom:40%}}
+
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
@@ -139,22 +158,10 @@
   <div class="grp" id="floorTabs"></div>
   <button id="bAddFloor" title="Add a floor from a PDF or image">＋ Floor</button>
   <div class="sep"></div>
-  <div class="grp"><button id="mDraw" class="on">✏️ Draw</button><button id="m3d">🧊 3D view</button></div>
-  <div class="sep only2d"></div>
-  <div class="grp only2d">
-    <button id="tDraw" class="on" title="Draw boxes (B)">▭ Box</button>
-    <button id="tWall" title="Draw walls (W): drag from one end to the other">▬ Wall</button>
-    <button id="tPan" title="Pan (H) — or hold Space / right-drag">✋ Pan</button>
-  </div>
-  <div class="sep only2d"></div>
-  <div class="grp only2d">
-    <button id="bAlign" title="Line this floor up with the floor below (A)">⇲ Align</button>
-    <button id="bFit" title="Fit floor (F)">Fit</button>
-    <button id="bUndo" title="Undo (Ctrl+Z)">↶</button>
-    <button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
-  </div>
+  <div class="grp seg"><button id="mDraw" class="on" title="Draw on the floor plan">2D</button><button id="m3d" title="See all floors in 3D">3D</button></div>
+  <div class="grp only2d"><button id="bUndo" title="Undo (Ctrl+Z)">↶</button><button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button></div>
   <div class="sep"></div>
-  <div class="grp"><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
+  <div class="grp"><button id="bList" title="Show or hide the list of boxes">☰ List</button><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
       <button data-x="zip"><b>Full backup</b> (.zip)<small>floors, rooms, walls and plan images</small></button>
       <button data-x="json"><b>Rooms &amp; walls</b> (.json)<small>without plan images</small></button>
       <button data-x="png2d"><b>2D floor image</b> (.png)<small>the floor you are looking at</small></button>
@@ -165,13 +172,34 @@
 </header>
 
 <aside>
-  <div class="sec only2d">
-    <h2>New boxes are</h2>
-    <div class="types" id="typePick" title="What new boxes are drawn as (keys 1–6)"></div>
+  <div class="sec only3d" style="flex-direction:column" id="ctl3dSec">
+    <h2>3D view</h2>
+    <div class="ctl3d">
+      <label>Floor spacing <input id="explode" type="range" min="1" max="4" step="0.05" value="1.8"></label>
+      <label>Box height <input id="hScale" type="range" min="0.2" max="1" step="0.05" value="0.7"></label>
+      <label>Show plan drawing <input id="showPlan" type="checkbox" checked></label>
+      <label>Show labels <input id="showLabels" type="checkbox" checked></label>
+    </div>
   </div>
-  <div class="sec only2d" id="editSec">
-    <h2>Selected box</h2>
-    <div id="editEmpty" class="empty">Pick a type above, then drag on the plan to draw a box. Use ▬ Wall for walls.</div>
+  <div class="sec" style="padding-bottom:8px"><h2 id="listTitle">Boxes</h2><input id="listSearch" placeholder="Search number or name…" autocomplete="off"></div>
+  <div id="list"></div>
+  <details class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
+    <summary>Keyboard &amp; tips</summary>
+    <div>
+      <kbd>V</kbd> select · <kbd>1</kbd>–<kbd>8</kbd> box types · <kbd>W</kbd> wall · <kbd>H</kbd> pan · <kbd>A</kbd> align · <kbd>F</kbd> fit<br>
+      <kbd>Del</kbd> delete · <kbd>Esc</kbd> cancel / deselect · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · scroll = zoom · right-drag or <kbd>Space</kbd>+drag = pan<br>
+      Edges snap to nearby boxes and walls; hold <kbd>Alt</kbd> to stop snapping.<br>
+      <b>Walkways, gardens and balconies</b> that touch join into one connected area.
+      <b>Empty</b> cuts a hole in the floor and shows what it opens onto below (for example a garden on GF).
+    </div>
+  </details>
+</aside>
+
+<main>
+  <canvas id="cv"></canvas>
+  <div id="palette" class="only2d"></div>
+  <div id="editCard">
+    <button id="ecClose" class="x" title="Close (Esc)">✕</button>
     <div id="editForm" style="display:none">
       <div class="field"><span>Type</span><div class="types" id="iType"></div></div>
       <label class="field"><span id="lNo">Room No. (required)</span><input id="iNo" autocomplete="off" placeholder="e.g. G01"></label>
@@ -186,28 +214,11 @@
       <div class="grp"><button id="wDone">Done</button><button id="wDel" class="danger">🗑 Delete wall</button></div>
     </div>
   </div>
-  <div class="sec only3d" style="flex-direction:column" id="ctl3dSec">
-    <h2>3D view</h2>
-    <div class="ctl3d">
-      <label>Floor spacing <input id="explode" type="range" min="1" max="4" step="0.05" value="1.8"></label>
-      <label>Box height <input id="hScale" type="range" min="0.2" max="1" step="0.05" value="0.7"></label>
-      <label>Show plan drawing <input id="showPlan" type="checkbox" checked></label>
-      <label>Show labels <input id="showLabels" type="checkbox" checked></label>
-    </div>
+  <div id="zoombar" class="only2d">
+    <button id="bZoomOut" title="Zoom out">−</button><button id="bZoomIn" title="Zoom in">＋</button>
+    <button id="bFit" title="Fit the floor on screen (F)">Fit</button>
+    <button id="bAlign" title="Line this floor up with the floor below (A)">⇲ Align</button>
   </div>
-  <div class="sec" style="padding-bottom:6px"><h2 id="listTitle">Boxes</h2></div>
-  <div id="list"></div>
-  <div class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
-    Drag to draw (also over other boxes) · click a box to select it, then drag it to move · drag its corners/edges to resize (edges snap to nearby boxes, hold <kbd>Alt</kbd> to stop snapping) ·
-    <kbd>Esc</kbd> while dragging cancels · <kbd>Del</kbd> deletes · <kbd>1</kbd>–<kbd>6</kbd> set type · <kbd>W</kbd> wall tool ·
-    <kbd>Space</kbd>+drag or right-drag to pan · scroll to zoom.<br>
-    Walkways that touch join into one path. <b>Empty</b> cuts a hole in the floor so you see the floor below.
-  </div>
-</aside>
-
-<main>
-  <canvas id="cv"></canvas>
-  <div id="boxBar"></div>
   <div id="emptyMain">
     <div style="font-size:18px;color:var(--text)">This map has no floors yet</div>
     <div>Start with a floor plan: a <b>PDF</b> or an <b>image</b> (PNG, JPG). You draw rooms and walls on top of it.</div>
@@ -358,11 +369,32 @@ const TYPES = {
   room:     {label:'Room',     color:'#4f8cff', glyph:''},
   bathroom: {label:'Bathroom', color:'#38bdf8', glyph:'WC'},
   walkway:  {label:'Walkway',  color:'#2ec4b6', glyph:'⇄'},
+  garden:   {label:'Garden',   color:'#5cb85c', glyph:'✿'},
+  balcony:  {label:'Balcony',  color:'#e0a458', glyph:'⌓'},
   stair:    {label:'Stair',    color:'#ff7a45', glyph:'▤'},
   elevator: {label:'Elevator', color:'#a06bff', glyph:'⇅'},
   empty:    {label:'Empty',    color:'#8b93a3', glyph:'↓'},
 };
 const TYPE_KEYS = Object.keys(TYPES);
+// walkways, gardens and balconies are open areas: pieces that touch join into one connected area
+const OPEN = new Set(['walkway', 'garden', 'balcony']);
+const overlaps = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.05 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0.05;
+/** What an Empty box opens onto: the first floor below (skipping further openings) and the boxes there under it. */
+function openTo(r, fi){
+  for (let k = fi - 1; k >= 0; k--) {
+    const fr = floorRooms(k).filter(o => overlaps(o, r));
+    const solid = fr.filter(o => typeOf(o) !== 'empty');
+    const deeper = fr.some(o => typeOf(o) === 'empty' && o.x0 <= r.x0 + .3 && o.x1 >= r.x1 - .3 && o.y0 <= r.y0 + .3 && o.y1 >= r.y1 - .3);
+    if (!deeper || solid.length) return {fi: k, boxes: solid};
+  }
+  return null;
+}
+const openToText = (r, fi) => {
+  const o = openTo(r, fi); if (!o) return 'Open (no floor below)';
+  const kinds = [...new Set(o.boxes.map(b => typeOf(b)))].sort((a,b) => OPEN.has(b) - OPEN.has(a));
+  const what = kinds.length ? kinds.map(k => TYPES[k].label.toLowerCase()).join(', ') : 'floor';
+  return `Open to ${floors[o.fi].name} ${what}`;
+};
 const typeOf = r => TYPES[r.type] ? r.type : 'room';
 const rgba = (hex, a) => `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${a})`;
 const boxTitle = r => typeOf(r) === 'room' ? (r.no || '(no number)') : (r.no || r.name || TYPES[typeOf(r)].label);
@@ -382,11 +414,11 @@ function outlineSegments(rs){
     // horizontal edges: covered where the area just outside the edge belongs to another rectangle
     for (const [y, out_] of [[r.y0, -1], [r.y1, 1]]) {
       const cuts = others.filter(o => out_ < 0 ? (o.y0 < y - EPS && o.y1 >= y - TOL) : (o.y0 <= y + TOL && o.y1 > y + EPS)).map(o => [o.x0, o.x1]);
-      for (const [a, b] of subtract(r.x0, r.x1, cuts)) out.push([a, y, b, y]);
+      for (const [a, b] of subtract(r.x0, r.x1, cuts)) out.push([a, y, b, y, r]);
     }
     for (const [x, out_] of [[r.x0, -1], [r.x1, 1]]) {
       const cuts = others.filter(o => out_ < 0 ? (o.x0 < x - EPS && o.x1 >= x - TOL) : (o.x0 <= x + TOL && o.x1 > x + EPS)).map(o => [o.y0, o.y1]);
-      for (const [a, b] of subtract(r.y0, r.y1, cuts)) out.push([x, a, x, b]);
+      for (const [a, b] of subtract(r.y0, r.y1, cuts)) out.push([x, a, x, b, r]);
     }
   }
   return out;
@@ -416,7 +448,7 @@ function typeButtons(el, active, onPick, short=false){
     el.appendChild(b);
   });
 }
-function setDrawType(k){ drawType = k; typeButtons($('typePick'), drawType, setDrawType); updateHint(); }
+function setDrawType(k){ drawType = k; setTool('draw'); }
 function setSelType(k){
   const r = byId(selId); if (!r || typeOf(r) === k) return;
   snapshot(); r.type = k;
@@ -445,7 +477,8 @@ function setFloor(i){
 
 // ---------- side panel ----------
 function refreshUI(){
-  const fr = cur < 0 ? rooms : floorRooms(cur);
+  const q = $('listSearch').value.trim().toLowerCase();
+  const fr = (cur < 0 ? rooms : floorRooms(cur)).filter(r => !q || `${r.no} ${r.name} ${TYPES[typeOf(r)].label}`.toLowerCase().includes(q));
   const nw = cur < 0 ? walls.length : floorWalls(cur).length, wtxt = nw ? ` · ${nw} wall${nw > 1 ? 's' : ''}` : '';
   $('listTitle').textContent = (cur < 0 ? `All boxes (${fr.length})` : floors[cur] ? `Boxes on ${floors[cur].name} (${fr.length})` : 'Boxes') + wtxt;
   const order = r => TYPE_KEYS.indexOf(typeOf(r));
@@ -463,7 +496,6 @@ function refreshUI(){
     $('list').appendChild(d);
   });
   const r = selId && byId(selId), w = selWall && wallById(selWall);
-  $('editEmpty').style.display = r || w ? 'none' : '';
   $('editForm').style.display = r ? '' : 'none';
   $('wallForm').style.display = w ? '' : 'none';
   if (w) {
@@ -475,7 +507,7 @@ function refreshUI(){
     typeButtons($('iType'), t, setSelType);
     $('lNo').textContent = t === 'room' ? 'Room No. (required)' : 'Number (optional)';
     $('iNo').placeholder = t === 'room' ? 'e.g. G01' : t === 'elevator' ? 'e.g. L1' : t === 'stair' ? 'e.g. S1' : '';
-    $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
+    $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', garden:'e.g. Courtyard', balcony:'e.g. East balcony', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
     if (document.activeElement !== $('iNo')) $('iNo').value = r.no;
     if (document.activeElement !== $('iName')) $('iName').value = r.name;
     if (document.activeElement !== $('iW')) $('iW').value = +(r.x1-r.x0).toFixed(2);
@@ -535,7 +567,7 @@ $('wT').addEventListener('input', e => {
 $('wT').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.target.blur(); e.preventDefault(); } });
 
 // ---------- 2D editor ----------
-const cv = $('cv'), bar = $('boxBar');
+const cv = $('cv'), bar = $('editCard');
 let ctx = cv.getContext('2d');   // swapped for an offscreen canvas while exporting a PNG
 let exporting = null;            // {W, H} during a PNG export
 const imgs = {};
@@ -580,10 +612,14 @@ function label(r, sel){
   const [a,b,w,h] = scrRect(r), t = typeOf(r);
   const fs = Math.max(9, Math.min(22, Math.min(w/5, h/3)));
   if (w < 22 || h < 14) return;
-  const head = t === 'room' ? (r.no || '?') : `${TYPES[t].glyph} ${r.no || (t === 'empty' && !r.name && cur > 0 ? 'Open to ' + floors[cur-1].name : TYPES[t].label)}`;
+  const head = t === 'room' ? (r.no || '?') : `${TYPES[t].glyph} ${r.no || (t === 'empty' && !r.name ? openToText(r, cur) : TYPES[t].label)}`;
   const lines = [[head, `700 ${fs}px system-ui`]];
   if (r.name && h > fs*2.4 && (t === 'room' || r.no)) lines.push([r.name, `400 ${fs*0.72}px system-ui`]);
   else if (r.name && t !== 'room') lines[0][0] = `${TYPES[t].glyph} ${r.name}`;
+  if (t === 'empty' && (r.no || r.name) && h > fs*2.4) {                // say what it opens onto, under its number/name
+    if (lines.length > 1) lines.pop();
+    lines.push([openToText(r, cur), `400 ${fs*0.72}px system-ui`]);
+  }
   ctx.save(); ctx.beginPath(); ctx.rect(a,b,w,h); ctx.clip();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const lh = fs*1.1, top = b + h/2 - (lines.length-1)*lh/2;
@@ -607,18 +643,26 @@ function draw(){
   const list = floorRooms(cur);
   if (drag && drag.kind === 'new') list.push(drag.r);
   const of = t => list.filter(r => typeOf(r) === t);
-  // walkways: one merged shape with a single outline
-  const ww = of('walkway');
-  if (ww.length) {
-    ctx.beginPath(); for (const r of ww) ctx.rect(...scrRect(r));
-    ctx.fillStyle = rgba(TYPES.walkway.color, .22); ctx.fill('nonzero');
-    ctx.beginPath();
-    for (const [x0,y0,x1,y1] of outlineSegments(ww)) { const [p,q] = toScr(x0,y0), [u,v] = toScr(x1,y1); ctx.moveTo(p,q); ctx.lineTo(u,v); }
-    ctx.lineWidth = 2; ctx.strokeStyle = TYPES.walkway.color; ctx.stroke();
+  // open areas (walkway, garden, balcony): each type filled once, then one outline around the whole connected
+  // area, so a garden next to a walkway reads as one joined space with no line between them
+  const open = list.filter(r => OPEN.has(typeOf(r)));
+  if (open.length) {
+    for (const t of OPEN) {
+      const rs = open.filter(r => typeOf(r) === t); if (!rs.length) continue;
+      ctx.beginPath(); for (const r of rs) ctx.rect(...scrRect(r));
+      ctx.fillStyle = rgba(TYPES[t].color, t === 'garden' ? .3 : .22); ctx.fill('nonzero');
+    }
+    ctx.lineWidth = 2;
+    for (const [x0,y0,x1,y1,r] of outlineSegments(open)) {
+      const [p,q] = toScr(x0,y0), [u,v] = toScr(x1,y1);
+      ctx.beginPath(); ctx.moveTo(p,q); ctx.lineTo(u,v); ctx.strokeStyle = TYPES[typeOf(r)].color;
+      if (typeOf(r) === 'balcony') ctx.setLineDash([6,3]);          // railing edge
+      ctx.stroke(); ctx.setLineDash([]);
+    }
   }
-  // rooms, stairs, elevators
+  // rooms, bathrooms, stairs, elevators
   for (const r of list) {
-    const t = typeOf(r); if (t === 'empty' || t === 'walkway') continue;
+    const t = typeOf(r); if (t === 'empty' || OPEN.has(t)) continue;
     const [a,b,w,h] = scrRect(r), c = TYPES[t].color, missing = t === 'room' && !r.no;
     ctx.fillStyle = rgba(c, t === 'room' ? .16 : .26); ctx.fillRect(a,b,w,h);
     if (t === 'stair') {                                  // tread lines
@@ -630,14 +674,18 @@ function draw(){
     if (missing) ctx.setLineDash([6,4]);
     ctx.lineWidth = 1.6; ctx.strokeStyle = missing ? '#ff5d73' : c; ctx.strokeRect(a,b,w,h); ctx.setLineDash([]);
   }
-  // empty: show the floor below through the hole
-  const below = floors[cur-1];
+  // empty: show what the hole opens onto (the floor below, or further down through more openings),
+  // including the gardens / walkways / rooms drawn there
   for (const r of of('empty')) {
-    const [a,b,w,h] = scrRect(r);
+    const [a,b,w,h] = scrRect(r), to = openTo(r, cur);
     ctx.save(); ctx.beginPath(); ctx.rect(a,b,w,h); ctx.clip();
     ctx.fillStyle = '#1a1e27'; ctx.fillRect(a,b,w,h);
-    if (below) { drawPlan(below, .85); ctx.fillStyle = 'rgba(20,24,32,.22)'; ctx.fillRect(a,b,w,h); }
-    else { ctx.fillStyle = hatchPattern(); ctx.fillRect(a,b,w,h); }
+    if (to) {
+      if (!imgs[planUrl(floors[to.fi])]) loadImg(to.fi).then(draw);     // first time: fetch that floor's plan, then redraw
+      drawPlan(floors[to.fi], .85);
+      for (const o of to.boxes) { ctx.fillStyle = rgba(TYPES[typeOf(o)].color, .35); ctx.fillRect(...scrRect(o)); }
+      ctx.fillStyle = 'rgba(20,24,32,.18)'; ctx.fillRect(a,b,w,h);
+    } else { ctx.fillStyle = hatchPattern(); ctx.fillRect(a,b,w,h); }
     ctx.restore();
     ctx.setLineDash([7,5]); ctx.lineWidth = 2; ctx.strokeStyle = '#5b6375'; ctx.strokeRect(a,b,w,h); ctx.setLineDash([]);
   }
@@ -675,43 +723,19 @@ function draw(){
   }
   if (!exporting) { placeBar(align ? null : sr || sw); updateHint(); }
 }
-// floating toolbar above the selected box: change type or delete
+// the edit card sits next to the selected box (or wall), clear of the tool palette
 function placeBar(r){
   if (!r || (drag && drag.kind !== 'pan')) { bar.style.display = 'none'; return; }
-  if (r.t !== undefined) {                              // a wall: only a delete button
-    const box = {x0:Math.min(r.x0,r.x1), x1:Math.max(r.x0,r.x1), y0:Math.min(r.y0,r.y1), y1:Math.max(r.y0,r.y1)};
-    if (bar.dataset.for !== 'wall' + r.id) {
-      bar.dataset.for = 'wall' + r.id; bar.innerHTML = '';
-      const lab = document.createElement('button'); lab.textContent = '▬ Wall'; lab.disabled = true; bar.appendChild(lab);
-      const del = document.createElement('button'); del.textContent = '🗑'; del.title = 'Delete wall (Del)';
-      del.onclick = e => { e.stopPropagation(); deleteSel(); }; bar.appendChild(del);
-    }
-    bar.style.display = 'flex';
-    const [a,b,w] = scrRect(box), bw = bar.offsetWidth || 120;
-    bar.style.left = Math.min(Math.max(a + w/2, bw/2 + 6), cv.clientWidth - bw/2 - 6) + 'px';
-    bar.style.top = (b - 14 < 46 ? b + (box.y1-box.y0)*view.s + 54 : b - 14) + 'px';
-    return;
-  }
-  const [a,b,w] = scrRect(r);
-  if (bar.dataset.for !== r.id + typeOf(r)) {
-    bar.dataset.for = r.id + typeOf(r); bar.innerHTML = '';
-    TYPE_KEYS.forEach((k, i) => {
-      const t = TYPES[k], btn = document.createElement('button');
-      btn.innerHTML = `<i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${t.color};margin-right:5px"></i>`; btn.append(t.label);
-      btn.title = `Make it ${t.label.toLowerCase()} (${i+1})`; btn.classList.toggle('on', k === typeOf(r));
-      btn.onclick = e => { e.stopPropagation(); setSelType(k); };
-      bar.appendChild(btn);
-    });
-    const sep = document.createElement('div'); sep.className = 'sep'; bar.appendChild(sep);
-    const del = document.createElement('button'); del.textContent = '🗑'; del.title = 'Delete box (Del)';
-    del.onclick = e => { e.stopPropagation(); deleteSel(); }; bar.appendChild(del);
-  }
-  bar.style.display = 'flex';
-  const bw = bar.offsetWidth || 380;
-  const x = Math.min(Math.max(a + w/2, bw/2 + 6), cv.clientWidth - bw/2 - 6);
-  const y = b - 10 < 46 ? b + (r.y1-r.y0)*view.s + 50 : b - 10;
-  bar.style.left = x + 'px'; bar.style.top = y + 'px';
+  const box = r.t !== undefined ? {x0:Math.min(r.x0,r.x1), x1:Math.max(r.x0,r.x1), y0:Math.min(r.y0,r.y1), y1:Math.max(r.y0,r.y1)} : r;
+  bar.style.display = 'block';
+  const [a,b,w] = scrRect(box), cw = bar.offsetWidth, ch = bar.offsetHeight, W = cv.clientWidth, H = cv.clientHeight, left = $('palette').offsetWidth + 20;
+  let x = a + w + 14;
+  if (x + cw > W - 8) x = a - cw - 14;
+  if (x < left) x = Math.min(Math.max(left, a + w/2 - cw/2), W - cw - 8);
+  bar.style.left = Math.max(8, x) + 'px';
+  bar.style.top = Math.min(Math.max(8, b), H - ch - 8) + 'px';
 }
+$('ecClose').onclick = () => finishEdit();
 const HN = ['nw','n','ne','e','se','s','sw','w'];
 function handles(r){ const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
   return [[r.x0,r.y0],[mx,r.y0],[r.x1,r.y0],[r.x1,my],[r.x1,r.y1],[mx,r.y1],[r.x0,r.y1],[r.x0,my]]; }
@@ -774,8 +798,31 @@ function snapPoint(x, y, skipId, from, free){
 const roundW = w => ['x0','y0','x1','y1'].forEach(k => w[k] = Math.round(w[k]*100)/100);
 
 let tool = 'draw', space = false, drag = null;
-function setTool(t){ tool = t; setTimeout(updateHint); $('tDraw').classList.toggle('on', t==='draw'); $('tWall').classList.toggle('on', t==='wall'); $('tPan').classList.toggle('on', t==='pan'); cv.style.cursor = t==='pan' ? 'grab' : 'crosshair'; }
-$('tDraw').onclick = () => setTool('draw'); $('tWall').onclick = () => setTool('wall'); $('tPan').onclick = () => setTool('pan');
+// tool palette: Select, one button per box type, Wall, Pan
+function renderPalette(){
+  const items = [{t:'select', label:'Select', key:'V', ic:'↖'}, '-',
+    ...TYPE_KEYS.map((k, i) => ({t:'draw', type:k, label:TYPES[k].label, key:String(i+1), color:TYPES[k].color})), '-',
+    {t:'wall', label:'Wall', key:'W', ic:'▬'}, {t:'pan', label:'Pan', key:'H', ic:'✋'}];
+  const el = $('palette'); el.innerHTML = '';
+  for (const it of items) {
+    if (it === '-') { el.insertAdjacentHTML('beforeend', '<div class="div"></div>'); continue; }
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="ic"></span><span class="lb"></span><kbd>${it.key}</kbd>`;
+    const ic = b.querySelector('.ic');
+    if (it.color) ic.style.background = it.color; else ic.textContent = it.ic;
+    b.querySelector('.lb').textContent = it.label;
+    b.title = it.t === 'draw' ? `Draw a ${it.label.toLowerCase()} (${it.key})` : `${it.label} (${it.key})`;
+    b.classList.toggle('on', it.t === tool && (it.t !== 'draw' || it.type === drawType));
+    b.onclick = () => it.t === 'draw' ? setDrawType(it.type) : setTool(it.t);
+    el.appendChild(b);
+  }
+}
+function setTool(t){ tool = t; renderPalette(); setTimeout(updateHint); cv.style.cursor = t === 'pan' ? 'grab' : t === 'select' ? 'default' : 'crosshair'; }
+function zoomBy(k){ const cx = cv.clientWidth/2, cy = cv.clientHeight/2, s = Math.min(200, Math.max(2, view.s*k)), f = s/view.s;
+  view.ox = cx - (cx - view.ox)*f; view.oy = cy - (cy - view.oy)*f; view.s = s; draw(); }
+$('bZoomIn').onclick = () => zoomBy(1.4); $('bZoomOut').onclick = () => zoomBy(1/1.4);
+$('bList').onclick = () => document.body.classList.toggle(matchMedia('(max-width:900px)').matches ? 'list-open' : 'list-closed');
+$('listSearch').oninput = () => refreshUI();
 $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function cancelDrag(){
@@ -804,6 +851,12 @@ cv.addEventListener('pointerdown', e => {
   }
   const h = hitHandle(sx,sy);
   if (h) { const r = byId(selId); drag = {kind:'resize', h, r, orig:{...r}, moved:false}; return; }
+  if (tool === 'select') {                               // Select: click picks, drag moves, drag on empty space pans
+    if (hw) { selectWall(hw.id); drag = {kind:'moveWall', w:hw, wx, wy, orig:{...hw}, moved:false}; return; }
+    const r = hitRoom(wx,wy);
+    if (r) { selectRoom(r.id); drag = {kind:'move', r, wx, wy, orig:{...r}, moved:false}; return; }
+    selId = selWall = null; refreshUI(); drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor = 'grabbing'; return;
+  }
   // a selected box is moved by dragging it; dragging anywhere else (even over another box) draws a new box,
   // and a plain click on a box selects it
   const r = hitRoom(wx,wy), sel = selId && byId(selId);
@@ -820,6 +873,7 @@ cv.addEventListener('pointermove', e => {
     if (tool !== 'wall' && hitWallEnd(sx,sy)) { cv.style.cursor = 'grab'; return; }
     const hw = hitWall(sx,sy);
     if (tool === 'wall') { cv.style.cursor = 'crosshair'; return; }
+    if (tool === 'select') { cv.style.cursor = hitHandle(sx,sy) ? CURSOR[hitHandle(sx,sy)] : hitWall(sx,sy) || hitRoom(wx,wy) ? 'move' : 'grab'; return; }
     if (hw) { cv.style.cursor = hw.id === selWall ? 'move' : 'pointer'; return; }
     const h = hitHandle(sx,sy), sel = selId && byId(selId);
     const onSel = sel && sel.floor === floors[cur]?.id && wx>=sel.x0 && wx<=sel.x1 && wy>=sel.y0 && wy<=sel.y1;
@@ -917,11 +971,15 @@ addEventListener('keydown', e => {
   if (e.code === 'Space') { space = true; cv.style.cursor = 'grab'; e.preventDefault(); }
   if (e.key === 'Delete' || e.key === 'Backspace') deleteSel();
   if (e.key === 'Enter' && selId) { $('iNo').focus(); $('iNo').select(); e.preventDefault(); }
-  if (/^[1-6]$/.test(e.key)) { const k = TYPE_KEYS[+e.key-1]; setDrawType(k); if (selId) setSelType(k); }
-  if (e.key === 'b') setTool('draw'); if (e.key === 'w') setTool('wall'); if (e.key === 'h') setTool('pan'); if (e.key === 'f') fit();
+  if (/^[1-9]$/.test(e.key) && TYPE_KEYS[+e.key-1]) setDrawType(TYPE_KEYS[+e.key-1]);
+  if (e.key === 'v') setTool('select');
+  if (e.key === 'b') setDrawType(drawType); if (e.key === 'w') setTool('wall'); if (e.key === 'h') setTool('pan'); if (e.key === 'f') fit();
 });
 addEventListener('keyup', e => { if (e.code === 'Space') { space = false; setTool(tool); } });
-addEventListener('resize', () => { resize(); view3d.resize(); });
+// the header wraps onto two lines on narrow screens; keep the plan and list just below it
+const fitHeader = () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
+addEventListener('resize', () => { fitHeader(); resize(); view3d.resize(); });
+fitHeader();
 
 // ---------- export / import ----------
 const stamp = () => new Date().toISOString().slice(0,16).replace(/[-:]/g,'').replace('T','-');
@@ -1318,14 +1376,15 @@ $('bAlign').onclick = () => startAlign();
 // ---------- hint line ----------
 function updateHint(){
   const h = $('hint');
-  if (mode !== '2d' || !floors[cur] || align) { h.style.display = 'none'; return; }
   const sr = selId && byId(selId), sw = selWall && wallById(selWall);
+  if (mode !== '2d' || !floors[cur] || align || sr || sw) { h.style.display = 'none'; return; }   // the edit card says it all
   let t;
-  if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> selected · drag it to move · drag edges to resize · type a number and name in the side panel · <b>Del</b> deletes · <b>Esc</b> deselects`;
-  else if (sw) t = `<b>Wall</b> selected · drag it or its round ends · set thickness in the side panel · <b>Del</b> deletes · <b>Esc</b> deselects`;
-  else if (tool === 'wall') t = `<b>Wall tool</b> · drag from one end of a wall to the other · start on a wall's end to continue it · hold <b>Shift</b> for any angle · <b>B</b> back to boxes`;
-  else if (tool === 'pan') t = `<b>Pan</b> · drag to move around · scroll to zoom · <b>B</b> to draw boxes`;
-  else t = `<b>Draw a ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · pick another type in the side panel (keys 1–6) · <b>W</b> walls · scroll to zoom · right-drag to pan`;
+  if (sr) t = `<b>${esc(TYPES[typeOf(sr)].label)} ${esc(sr.no || sr.name)}</b> · edit it in the card · drag to move · drag edges to resize · <b>Del</b> deletes · <b>Esc</b> closes`;
+  else if (sw) t = `<b>Wall</b> · drag it or its round ends · thickness in the card · <b>Del</b> deletes · <b>Esc</b> closes`;
+  else if (tool === 'select') t = `<b>Select</b> · click a box or wall to edit it · drag to move · drag empty space to pan · pick a type on the left to draw`;
+  else if (tool === 'wall') t = `<b>Wall</b> · drag from one end to the other · start on a wall's end to continue it · <b>Shift</b> any angle · <b>V</b> select`;
+  else if (tool === 'pan') t = `<b>Pan</b> · drag to move around · scroll to zoom · <b>V</b> select`;
+  else t = `<b>Draw ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · click an existing box to edit it · <b>V</b> select · scroll to zoom`;
   h.innerHTML = t; h.style.display = 'block';
 }
 
@@ -1360,7 +1419,7 @@ const view3d = (() => {
         }
         const t = typeOf(r);
         tip.querySelector('b').textContent = [r.no, r.name].filter(Boolean).join(' · ') || TYPES[t].label;
-        tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${TYPES[t].label}${t === 'empty' && m.userData.fi > 0 ? ' (open to ' + floors[m.userData.fi-1].name + ')' : ''} · ${((r.x1-r.x0)*(r.y1-r.y0)).toFixed(1)} m²`;
+        tip.querySelector('.m').textContent = `${floorName(r.floor)} · ${TYPES[t].label}${t === 'empty' ? ' · ' + openToText(r, m.userData.fi).toLowerCase() : ''} · ${((r.x1-r.x0)*(r.y1-r.y0)).toFixed(1)} m²`;
         tip.style.display = 'block'; tip.style.left = Math.min(e.clientX+14, innerWidth-260)+'px'; tip.style.top = (e.clientY+14)+'px';
         dom.style.cursor = 'pointer';
       } else { tip.style.display = 'none'; dom.style.cursor = ''; }
@@ -1423,7 +1482,7 @@ const view3d = (() => {
     const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
     const k = 0.035 * SPAN/130; sp.scale.set(c.width*k, c.height*k, 1); sp.renderOrder = 5; return sp;
   }
-  const OPACITY = {room:.45, bathroom:.5, walkway:.32, stair:.55, elevator:.55, empty:.07, wall:.92};
+  const OPACITY = {room:.45, bathroom:.5, walkway:.32, garden:.5, balcony:.22, stair:.55, elevator:.55, empty:.07, wall:.92};
   function rebuild(){
     buildFloors(); meshes = [];
     for (const r of rooms) {
@@ -1432,8 +1491,8 @@ const view3d = (() => {
       const geo = new T.BoxGeometry(w, 1, d); geo.translate(0, .5, 0);
       const col = new T.Color(t === 'room' && !r.no ? '#ff5d73' : TYPES[t].color);
       const m = new T.Mesh(geo, new T.MeshStandardMaterial({color:col, transparent:true, opacity:OPACITY[t], depthWrite:false, side: t === 'empty' ? T.DoubleSide : T.FrontSide}));
-      // walkways get one shared outline per floor (below) so touching pieces read as one path
-      if (t !== 'walkway') m.add(new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color: t === 'empty' ? 0x8b93a3 : col, transparent:true})));
+      // open areas get one shared outline per floor (below) so touching pieces read as one area
+      if (!OPEN.has(t)) m.add(new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color: t === 'empty' ? 0x8b93a3 : col, transparent:true})));
       m.position.set((r.x0+r.x1)/2-CX, 0, (r.y0+r.y1)/2-CZ); m.userData = {r, fi, t, op:OPACITY[t]};
       g.userData.boxes.add(m); meshes.push(m);
       m.name = [TYPES[t].label, r.no, r.name].filter(Boolean).join(' ');   // shows up in exported 3D models
@@ -1452,10 +1511,11 @@ const view3d = (() => {
       groups[fi].userData.boxes.add(m); meshes.push(m);
     }
     floors.forEach((f, fi) => {
-      const ww = rooms.filter(r => r.floor === f.id && typeOf(r) === 'walkway'); if (!ww.length) return;
-      const pts = outlineSegments(ww).flatMap(([x0,y0,x1,y1]) => [x0-CX, 0, y0-CZ, x1-CX, 0, y1-CZ]);
-      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pts, 3));
-      const lines = new T.LineSegments(geo, new T.LineBasicMaterial({color:TYPES.walkway.color, transparent:true}));
+      const ww = rooms.filter(r => r.floor === f.id && OPEN.has(typeOf(r))); if (!ww.length) return;
+      const segs = outlineSegments(ww), pts = segs.flatMap(([x0,y0,x1,y1]) => [x0-CX, 0, y0-CZ, x1-CX, 0, y1-CZ]);
+      const cols = segs.flatMap(([,,,,r]) => { const c = new T.Color(TYPES[typeOf(r)].color); return [c.r, c.g, c.b, c.r, c.g, c.b]; });
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pts, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
+      const lines = new T.LineSegments(geo, new T.LineBasicMaterial({vertexColors:true, transparent:true}));
       lines.userData.walkOutline = true; groups[fi].userData.boxes.add(lines);
     });
     layout();
@@ -1468,20 +1528,23 @@ const view3d = (() => {
       const on = active < 0 || active === i, next = floors[i+1], below = floors[i-1];
       g.visible = active < 0 || i <= active;
       g.position.y = floors[i].elev * ex;
-      g.userData.plane.material.opacity = $('showPlan').checked ? (on ? .9 : .1) : 0;
+      // floors under the isolated one stay fairly visible so they show through Empty openings
+      g.userData.plane.material.opacity = $('showPlan').checked ? (on ? .9 : i < active ? .45 : .1) : 0;
       g.userData.boxes.children.forEach(m => {
         if (m.userData.walkOutline) { m.position.y = WALK + 0.01; m.material.opacity = on ? 1 : .1; return; }
         const t = m.userData.t;
         let h = roomH, y = 0;
-        if (t === 'walkway') h = WALK;
+        if (t === 'walkway' || t === 'garden') h = WALK;
+        else if (t === 'balcony') h = 1.1;                                    // railing height
+        else if (t === 'empty') { const to = openTo(m.userData.r, i); h = to ? (floors[i].elev - floors[to.fi].elev) * ex : 0.01; y = -h; }
         else if (t === 'stair' || t === 'elevator') h = next && (active < 0 || i < active) ? (next.elev - floors[i].elev) * ex : roomH;
-        else if (t === 'empty') { h = below ? (floors[i].elev - below.elev) * ex : 0.01; y = -h; }
+
         m.scale.y = Math.max(h, 0.01); m.position.y = y;
         m.userData.op = on ? OPACITY[t] : OPACITY[t] * .15; m.material.opacity = m.userData.op;
         if (m.children[0]) m.children[0].material.opacity = on ? (t === 'empty' ? .5 : 1) : .1;
       });
       g.userData.labels.visible = $('showLabels').checked && active === i;   // labels only when one floor is isolated
-      g.userData.labels.children.forEach(s => s.position.y = (s.userData.t === 'walkway' || s.userData.t === 'empty' ? WALK : roomH) + 1.5);
+      g.userData.labels.children.forEach(s => s.position.y = (OPEN.has(s.userData.t) || s.userData.t === 'empty' ? WALK : roomH) + 1.5);
     });
   }
   function pick(e){
@@ -1548,7 +1611,7 @@ fetch('api/health').then(r => r.json()).then(j => $('ver').textContent = j.versi
 if (!MAP) showHome();
 else {
   $('bMapName').textContent = mapMeta.name; document.title = mapMeta.name + ' · Waypoint';
-  buildTabs(); refreshUI(); updateChrome(); resize(); setTool('draw'); setDrawType('room');
+  buildTabs(); refreshUI(); updateChrome(); resize(); setTool(rooms.length ? 'select' : 'draw');
   setStatus(serverOK ? `Saved · ${rooms.length} boxes · ${walls.length} walls` : 'Cannot reach the Waypoint server — changes will not be saved', !serverOK);
   await Promise.all([loadImg(0)]); fit();
   if (OPEN_WIZARD) { history.replaceState(null, '', '#/map/' + MAP); openWizard(); }

@@ -13,7 +13,8 @@ Data layout in DATA_DIR (one folder per map):
   maps/<mapId>/floors.json  {"floors": [{id, name, elev, extent:[x0,y0,x1,y1], plan, demo?}]}
   maps/<mapId>/rooms.json   {"version": 1, "rooms": [{id, floor, type, no, name, x0, y0, x1, y1}],
                              "walls": [{id, floor, x0, y0, x1, y1, t}]}
-                            type: room | bathroom | walkway | stair | elevator | empty (opening to the floor below)
+                            type: room | bathroom | walkway | garden | balcony | stair | elevator | empty (opening to the floor below)
+                            walkways, gardens and balconies that touch form one connected outdoor/circulation area
   maps/<mapId>/plans/       floor plan images referenced by floors.json
   maps/<mapId>/*.bak.json   previous version of each file, written before every save
   backups/                  copies taken automatically before an import replaces a map, and deleted maps
@@ -52,7 +53,7 @@ MAX_IMPORT = int(float(os.environ.get('WAYPOINT_MAX_IMPORT_MB', '300')) * 1024 *
 MAX_JSON = 10 * 1024 * 1024
 ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$')
 FILE_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$')
-ROOM_TYPES = ('room', 'bathroom', 'walkway', 'stair', 'elevator', 'empty')
+ROOM_TYPES = ('room', 'bathroom', 'walkway', 'garden', 'balcony', 'stair', 'elevator', 'empty')
 IMAGE_TYPES = {b'\x89PNG': 'png', b'\xff\xd8\xff': 'jpg', b'RIFF': 'webp'}
 VERSION = os.environ.get('WAYPOINT_VERSION', 'dev')
 lock = threading.Lock()

@@ -50,7 +50,10 @@ for fid, fname, elev, rs in FLOORS:
                       'x0': x0 + 0.15, 'y0': y0 + 0.15, 'x1': x1 - 0.15, 'y1': y1 - 0.15, 'demo': True})
     # corridor drawn as two touching walkway pieces (they join into one path), plus a stair and an elevator
     end = 28 if fid == 'demo-ground' else 26
-    extra = [('walkway', '', 'Demo – Corridor west', 1, 9, 14, 15), ('walkway', '', 'Demo – Corridor east', 14, 9, end, 15),
+    # corridor: walkway pieces with a small garden courtyard in the middle on the ground floor (they join into
+    # one area); above it on level 1 an Empty opening looks down onto that garden. Plus a stair and a lift.
+    mid = ('garden', '', 'Demo – Courtyard garden') if fid == 'demo-ground' else ('empty', '', 'Demo – Atrium')
+    extra = [('walkway', '', 'Demo – Corridor west', 1, 9, 12, 15), (*mid, 12, 9, 18, 15), ('walkway', '', 'Demo – Corridor east', 18, 9, end, 15),
              ('elevator', 'L1', 'Demo – Lift', 1.3, 9.3, 4.2, 12.2), ('stair', 'S1', 'Demo – Stair', end - 3.4, 9.3, end - 0.3, 12.4)]
     for kind, no, name, x0, y0, x1, y1 in extra:
         rooms.append({'id': f'demo-{fid}-{kind}-{x0:g}', 'floor': fid, 'type': kind, 'no': no, 'name': name,
