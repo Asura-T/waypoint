@@ -188,6 +188,7 @@
     <div>
       <kbd>V</kbd> select · <kbd>1</kbd>–<kbd>8</kbd> box types · <kbd>W</kbd> wall · <kbd>H</kbd> pan · <kbd>A</kbd> align · <kbd>F</kbd> fit<br>
       <kbd>Del</kbd> delete · <kbd>Esc</kbd> cancel / deselect · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · scroll = zoom · right-drag or <kbd>Space</kbd>+drag = pan<br>
+      <b>Right-click</b> any wall or box to select it, whatever tool is active. Walls are also listed below the boxes.<br>
       Edges snap to nearby boxes and walls; hold <kbd>Alt</kbd> to stop snapping.<br>
       <b>Walkways, gardens and balconies</b> that touch join into one connected area.
       <b>Empty</b> cuts a hole in the floor and shows what it opens onto below (for example a garden on GF).
@@ -495,6 +496,15 @@ function refreshUI(){
     d.onclick = () => { if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
     $('list').appendChild(d);
   });
+  if (cur >= 0 && floors[cur] && (!q || 'wall'.includes(q))) floorWalls(cur).forEach((w, i) => {   // walls, so they are easy to find and delete
+    const d = document.createElement('div');
+    d.className = 'room' + (w.id === selWall ? ' sel' : '');
+    d.innerHTML = `<span class="ic" style="background:#273244;border:1px solid #6b7280"></span><b>Wall ${i+1}</b><span class="nm"></span>`;
+    d.querySelector('.nm').textContent = `${Math.hypot(w.x1-w.x0, w.y1-w.y0).toFixed(1)} m · ${w.t} m thick`;
+    d.onclick = () => { if (mode !== '2d') return; selectWall(w.id);
+      centerOn({x0:Math.min(w.x0,w.x1)-1, x1:Math.max(w.x0,w.x1)+1, y0:Math.min(w.y0,w.y1)-1, y1:Math.max(w.y0,w.y1)+1}); };
+    $('list').appendChild(d);
+  });
   const r = selId && byId(selId), w = selWall && wallById(selWall);
   $('editForm').style.display = r ? '' : 'none';
   $('wallForm').style.display = w ? '' : 'none';
@@ -557,7 +567,7 @@ function deleteSel(){
   if (selWall) { snapshot(); walls = walls.filter(w => w.id !== selWall); selWall = null; return afterChange(); }
   if (!selId) return; snapshot(); rooms = rooms.filter(r => r.id !== selId); selId = null; afterChange();
 }
-function selectWall(id){ selWall = id; selId = null; refreshUI(); draw(); }
+function selectWall(id){ selWall = id; selId = null; refreshUI(); draw(); const el = $('list').querySelector('.sel'); if (el) el.scrollIntoView({block:'nearest'}); }
 let wallT = 0.2;                                         // thickness for new walls; follows the last one edited
 $('wT').addEventListener('focus', () => editSnap = false);
 $('wT').addEventListener('input', e => {
@@ -582,7 +592,7 @@ function loadImg(fi){
 let view = {s:6, ox:0, oy:0};      // screen px per metre + offset
 const toScr = (x,y) => [x*view.s + view.ox, y*view.s + view.oy];
 const toW = (sx,sy) => [(sx - view.ox)/view.s, (sy - view.oy)/view.s];
-function resize(){ const d = devicePixelRatio||1; cv.width = cv.clientWidth*d; cv.height = cv.clientHeight*d; ctx.setTransform(d,0,0,d,0,0); draw(); }
+function resize(){ const d = devicePixelRatio||1; cv.width = Math.round(cv.clientWidth*d); cv.height = Math.round(cv.clientHeight*d); ctx.setTransform(d,0,0,d,0,0); draw(); }
 function fit(){
   if (!floors[Math.max(cur,0)]) return draw();
   const [x0,y0,x1,y1] = floors[Math.max(cur,0)].extent, W = cv.clientWidth, H = cv.clientHeight;
@@ -800,12 +810,12 @@ function segDist(px,py, w){
 }
 function hitWall(sx,sy){
   let best = null, bd = Infinity;
-  for (const w of floorWalls(cur)) { const d = segDist(sx,sy,w); if (d < Math.max(6, w.t*view.s/2 + 3) && d < bd) { bd = d; best = w; } }
+  for (const w of floorWalls(cur)) { const d = segDist(sx,sy,w); if (d < Math.max(9, w.t*view.s/2 + 5) && d < bd) { bd = d; best = w; } }
   return best;
 }
 function hitWallEnd(sx,sy){
   const w = selWall && wallById(selWall); if (!w || w.floor !== floors[cur]?.id) return null;
-  for (const end of [0,1]) { const [p,q] = toScr(w['x'+end], w['y'+end]); if (Math.hypot(p-sx, q-sy) < 10) return {w, end}; }
+  for (const end of [0,1]) { const [p,q] = toScr(w['x'+end], w['y'+end]); if (Math.hypot(p-sx, q-sy) < 12) return {w, end}; }
   return null;
 }
 function snapPoint(x, y, skipId, from, free){
@@ -843,7 +853,7 @@ function cornerPoint(wx, wy, e){
 const nearFirst = (sx, sy) => { if (!poly || !poly.pts.length) return false; const [p,q] = toScr(...poly.pts[0]); return Math.hypot(p-sx, q-sy) < 11; };
 function cornerMove(wx, wy, sx, sy, e){
   const sp = cornerPoint(wx, wy, e), near = nearFirst(sx, sy) && poly.pts.length >= (poly.kind === 'box' ? 3 : 2);
-  cornerHover = {x: near ? poly.pts[0][0] : sp.x, y: near ? poly.pts[0][1] : sp.y, pt: sp.pt, near};
+  cornerHover = {x: near ? poly.pts[0][0] : sp.x, y: near ? poly.pts[0][1] : sp.y, pt: sp.pt, near, sx, sy};
   cv.style.cursor = near ? 'pointer' : 'crosshair'; draw();
 }
 function cornerClick(wx, wy, e){
@@ -892,6 +902,11 @@ function drawCorners(){
     const [p,q] = toScr(cornerHover.x, cornerHover.y);
     ctx.beginPath(); ctx.arc(p, q, 4, 0, 7); ctx.fillStyle = color; ctx.fill();
     if (cornerHover.pt) { ctx.strokeStyle = '#ff3ea5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p, q, 9, 0, 7); ctx.stroke(); }
+    if (Math.hypot(p - cornerHover.sx, q - cornerHover.sy) > 2) {   // snapped away from the pointer: show where the pointer really is
+      const {sx, sy} = cornerHover; ctx.strokeStyle = 'rgba(30,40,60,.8)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx-6, sy); ctx.lineTo(sx+6, sy); ctx.moveTo(sx, sy-6); ctx.lineTo(sx, sy+6); ctx.stroke();
+      ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(p, q); ctx.stroke(); ctx.setLineDash([]);
+    }
   }
 }
 cv.addEventListener('dblclick', () => { if (poly) finishCorners(poly.kind === 'box'); });
@@ -939,7 +954,7 @@ cv.addEventListener('pointerdown', e => {
   if (drag && drag.kind !== 'pan' && e.button === 2) { cancelDrag(); return; }   // right-click while drawing = cancel
   cv.setPointerCapture(e.pointerId);
   const sx = e.offsetX, sy = e.offsetY, [wx,wy] = toW(sx,sy);
-  if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy}; cv.style.cursor='grabbing'; return; }
+  if (e.button === 1 || e.button === 2 || space || tool === 'pan') { drag = {kind:'pan', sx, sy, ox:view.ox, oy:view.oy, right: e.button === 2}; cv.style.cursor='grabbing'; return; }
   if (!floors[cur]) return;
   if (align) { drag = {kind:'align', sx, sy, dx0:align.dx, dy0:align.dy}; cv.style.cursor = 'grabbing'; return; }
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
@@ -1034,8 +1049,14 @@ cv.addEventListener('pointermove', e => {
   }
   drag.guides = g; draw();
 });
-cv.addEventListener('pointerup', () => {
+cv.addEventListener('pointerup', e => {
   const d = drag; drag = null; if (!d) return;
+  if (d.kind === 'pan' && d.right && Math.hypot(e.offsetX - d.sx, e.offsetY - d.sy) < 4) {   // right-click: select what's under it
+    const [wx, wy] = toW(e.offsetX, e.offsetY), hw = hitWall(e.offsetX, e.offsetY), r = hw ? null : hitRoom(wx, wy);
+    if (poly) { poly = null; }                           // right-click also abandons a half-placed corner shape
+    if (hw) selectWall(hw.id); else if (r) selectRoom(r.id); else { selId = selWall = null; refreshUI(); }
+    setTool(tool); draw(); return;
+  }
   if (d.kind === 'pan' || d.kind === 'align') { setTool(tool); draw(); return; }
   if (d.kind === 'newWall') {
     const w = d.w;
@@ -1098,6 +1119,10 @@ addEventListener('keyup', e => { if (e.code === 'Space') { space = false; setToo
 const fitHeader = () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
 addEventListener('resize', () => { fitHeader(); resize(); view3d.resize(); });
 fitHeader();
+// the canvas must be redrawn at its real size whenever its box changes (list shown/hidden, header wrapping,
+// window resized); otherwise the picture is stretched and dots/clicks land away from the pointer
+new ResizeObserver(fitHeader).observe(document.querySelector('header'));
+new ResizeObserver(() => { if (cv.clientWidth && (cv.width !== Math.round(cv.clientWidth*(devicePixelRatio||1)) || cv.height !== Math.round(cv.clientHeight*(devicePixelRatio||1)))) resize(); }).observe(cv);
 
 // ---------- export / import ----------
 const stamp = () => new Date().toISOString().slice(0,16).replace(/[-:]/g,'').replace('T','-');
@@ -1501,10 +1526,10 @@ function updateHint(){
   else if (sw) t = `<b>Wall</b> · drag it or its round ends · thickness in the card · <b>Del</b> deletes · <b>Esc</b> closes`;
   else if (tool === 'select') t = `<b>Select</b> · click a box or wall to edit it · drag to move · drag empty space to pan · pick a type on the left to draw`;
   else if (shapeMode === 'corners' && (tool === 'draw' || tool === 'wall'))
-    t = `<b>Click corners${tool === 'wall' ? ' · walls' : ' · ' + esc(TYPES[drawType].label.toLowerCase())}</b> · click a dot on each corner · click the first dot (or <b>Enter</b> / double-click) to finish · <b>Backspace</b> removes the last dot · <b>Esc</b> cancels · <b>C</b> back to drag`;
-  else if (tool === 'wall') t = `<b>Wall</b> · drag from one end to the other · start on a wall's end to continue it · <b>Shift</b> any angle · <b>V</b> select`;
+    t = `<b>Click corners${tool === 'wall' ? ' · walls' : ' · ' + esc(TYPES[drawType].label.toLowerCase())}</b> · click a dot on each corner · click the first dot (or <b>Enter</b> / double-click) to finish · <b>Backspace</b> removes the last dot · <b>Esc</b> cancels · <b>right-click</b> a wall or box to edit it · <b>Alt</b> = no snapping`;
+  else if (tool === 'wall') t = `<b>Wall</b> · drag from one end to the other · start on a wall's end to continue it · <b>Shift</b> any angle · <b>right-click</b> a wall to edit or delete it`;
   else if (tool === 'pan') t = `<b>Pan</b> · drag to move around · scroll to zoom · <b>V</b> select`;
-  else t = `<b>Draw ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · click an existing box to edit it · <b>V</b> select · scroll to zoom`;
+  else t = `<b>Draw ${esc(TYPES[drawType].label.toLowerCase())}</b> · drag on the plan · click or right-click an existing box to edit it · <b>V</b> select · scroll to zoom`;
   h.innerHTML = t; h.style.display = 'block';
 }
 
@@ -1583,6 +1608,7 @@ const view3d = (() => {
       }
       const plane = new T.Mesh(new T.PlaneGeometry(x1-x0,y1-y0), mat);
       plane.rotation.x = -Math.PI/2; plane.position.set((x0+x1)/2-CX, 0.02, (y0+y1)/2-CZ);
+      plane.renderOrder = -1;                              // the plan first: otherwise it can be drawn over walkways and boxes
       g.add(plane); g.userData = {plane, boxes:new T.Group(), labels:new T.Group()};
       g.add(g.userData.boxes, g.userData.labels); scene.add(g); groups.push(g);
     });

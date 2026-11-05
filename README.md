@@ -22,6 +22,7 @@ Keep as many **maps** as you like (one per building or site). For each floor you
   - <kbd>Backspace</kbd> removes the last dot and <kbd>Esc</kbd> cancels.
   - Dots snap to existing corners and wall ends, and line up straight with the previous dot and with earlier dots of the same shape. Hold <kbd>Shift</kbd> for any angle.
   - To reshape one later, use **Select**, click it and drag its round corner dots.
+- **Right-click** any wall or box to select it, whichever tool is active (even mid-drawing). The edit card then lets you change it or **Delete** it. Walls are also listed under the boxes in the side list, so a wall that is hard to hit can be selected from there.
 - **Draw mode**: the floor plan is the background. Pick a type, then drag to draw a box, even on top of other boxes. Click a box to select it, then drag it to move it, or drag its edges or corners to resize it. Edges snap to nearby boxes (hold <kbd>Alt</kbd> to turn snapping off). Press <kbd>Esc</kbd> or right-click while dragging to cancel. A toolbar above the selected box changes its type or deletes it. Undo and redo are supported.
 - **Box types**:
   - **Room**: needs a room number. The name is optional.
