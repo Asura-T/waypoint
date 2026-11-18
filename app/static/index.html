@@ -35,22 +35,47 @@
   #palette .ic{width:16px;height:16px;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px}
   #palette kbd{margin-left:auto;opacity:.6}
   #palette .div{height:1px;background:var(--line);margin:4px 2px}
-  #zoombar{position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:3}
+  #palette button.mode{border:1px dashed var(--line)}
+  #zoombar{position:absolute;right:10px;bottom:calc(10px + var(--sb, 0px));display:flex;gap:4px;z-index:3}
   #zoombar button{background:rgba(23,26,33,.96)}
-  #editCard{position:absolute;display:none;width:290px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.5)}
-  .autonote{background:#3a2a10;border:1px solid #8a6420;color:#ffd79a;border-radius:8px;padding:7px 9px;font-size:12px;margin:0 22px 10px 0;line-height:1.5}
-  .autonote button{margin-top:5px;padding:3px 9px;font-size:12px}
+  #editCard{position:absolute;left:12px;right:12px;bottom:12px;margin:0 auto;max-width:900px;display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;z-index:5;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  .sb{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+  .sb input,.sb select{background:#11141a;border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text);min-width:0}
+  .sb input:focus,.sb select:focus{outline:none;border-color:var(--accent)}
+  .sb .no{width:92px}.sb .nm{flex:1 1 160px}
+  .sb .sz{display:inline-flex;align-items:center;gap:4px}.sb .sz input{width:66px}.sb .sz i{font-style:normal;color:var(--muted)}
+  .sb .chip{width:12px;height:12px;border-radius:3px;flex:none}
+  #editCard{padding-right:40px}
+  .sb .x{position:absolute;top:6px;right:6px;background:transparent;border-color:transparent;padding:4px 8px;font-size:15px}
+  .sb .warn{flex-basis:100%;min-height:0}.sb .warn:empty{display:none}
+  .sb .muted,.muted{color:var(--muted);font-size:13px}
+  .sb label.muted input{width:70px}
+  .narrow{display:none}
   .room .tag{margin-left:auto}
-  #autoBar{display:none;margin-top:6px;font-size:12px;color:#ffd79a;gap:6px;align-items:center;flex-wrap:wrap}
-  #autoBar button{padding:3px 8px;font-size:12px}
-  #editCard .x{position:absolute;right:6px;top:6px;padding:2px 7px;background:transparent;border-color:transparent}
-  #editCard .types{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
-  #editCard .types button{font-size:12px;padding:4px 6px;text-align:left}
+  #autoBar{display:none;margin-top:8px;font-size:12px;color:#ffd79a;gap:6px;align-items:center;flex-wrap:wrap}
+  #autoBar button{padding:4px 9px;font-size:12px}
+  #autoCount{flex-basis:100%}
   @media (max-width:900px){
     aside{transform:translateX(100%)} body.list-open aside{transform:none;box-shadow:-10px 0 30px rgba(0,0,0,.5)} main{right:0}
+    /* one header row: floor dropdown and a ⋯ menu instead of tabs and buttons */
+    header{flex-wrap:nowrap;gap:6px;padding:6px 8px;overflow:visible}
+    .wide,#floorTabs,header .sep,#status,.brand small,.brand b{display:none!important}
+    .narrow{display:block}
+    #floorSel{background:#222733;border:1px solid var(--line);border-radius:8px;padding:6px;color:var(--text);max-width:110px}
+    .mapname{max-width:28vw}
+    header button{padding:6px 8px}
+    /* tools wrap onto a second row rather than scrolling; the edit bar sits just above them */
+    #palette{flex-wrap:wrap;justify-content:center;overflow:visible}
+    /* tools as a strip along the bottom of the plan; zoom at the top right */
+    #palette{top:auto;left:8px;right:8px;bottom:8px;flex-direction:row;max-height:none;padding:4px}
+    #palette button{padding:6px 7px}
     #palette button span.lb,#palette kbd{display:none}
-    header h1,.brand small{display:none}
+    #palette .div{width:1px;height:auto;margin:2px 3px}
+    #editCard{left:8px;right:8px;bottom:calc(var(--pal, 50px) + 14px)}
+    #zoombar{top:8px;bottom:auto;right:8px}
+    #hint{display:none!important}
   }
+  @media (max-width:560px){ .mapname{display:none} }
   #cv{display:block;width:100%;height:100%;touch-action:none}
   #three{position:absolute;inset:0;display:none}
   .sec{padding:12px 14px;border-bottom:1px solid var(--line)}
@@ -116,7 +141,7 @@
   #floorTabs{flex:0 1 auto;min-width:90px;max-width:46vw;overflow-x:auto;scrollbar-width:thin}
   .mapname{background:transparent;border-color:transparent;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
   .mapname:hover,.brand:hover{background:#222733}
-  #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:min(640px,60%);background:rgba(23,26,33,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);pointer-events:none}
+  #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sb, 0px));max-width:min(640px,60%);background:rgba(23,26,33,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);pointer-events:none}
   #hint b{color:var(--text)}
   #alignBar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:6px 8px 6px 12px;z-index:4;font-size:13px}
   #home{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;display:none;padding:28px max(16px,calc(50vw - 560px))}
@@ -161,12 +186,21 @@
   <button id="bMapName" class="mapname" title="Rename this map"></button>
   <div class="sep"></div>
   <div class="grp" id="floorTabs"></div>
-  <button id="bAddFloor" title="Add a floor from a PDF or image">＋ Floor</button>
+  <select id="floorSel" class="narrow" title="Floor"></select>
+  <button id="bAddFloor" class="wide" title="Add a floor from a PDF or image">＋ Floor</button>
   <div class="sep"></div>
   <div class="grp seg"><button id="mDraw" class="on" title="Draw on the floor plan">2D</button><button id="m3d" title="See all floors in 3D">3D</button></div>
-  <div class="grp only2d"><button id="bUndo" title="Undo (Ctrl+Z)">↶</button><button id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button></div>
+  <div class="grp only2d"><button id="bUndo" title="Undo (Ctrl+Z)">↶</button><button id="bRedo" class="wide" title="Redo (Ctrl+Shift+Z)">↷</button></div>
   <div class="sep"></div>
-  <div class="grp"><button id="bList" title="Show or hide the list of boxes">☰ List</button><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
+  <div class="menu narrow"><button id="bMore" title="More">⋯</button><div class="pop" id="mMore">
+      <button data-click="bRedo"><b>↷ Redo</b><small>Ctrl+Shift+Z</small></button>
+      <button data-click="bAddFloor"><b>＋ Add a floor</b><small>from a PDF or image</small></button>
+      <button data-click="bList"><b>☰ List of boxes</b><small>search, check auto-drawn boxes</small></button>
+      <button data-click="bFloors"><b>Floors…</b><small>rename, reorder, replace plans</small></button>
+      <button data-click="bExport"><b>Export…</b><small>backup, web page, images, 3D model</small></button>
+      <button data-click="bImport"><b>Import…</b><small>backup .zip or rooms .json</small></button>
+    </div></div>
+  <div class="grp wide"><button id="bList" title="Show or hide the list of boxes">☰ List</button><button id="bFloors">Floors…</button><div class="menu"><button id="bExport">Export ▾</button><div class="pop" id="mExport">
       <button data-x="viewer"><b>View-only web page</b> (.html)<small>one file to share: pick floors, 2D and 3D, no editing</small></button>
       <button data-x="viewopen"><b>Open view-only page</b><small>in a new tab, to look at it right away</small></button>
       <button data-x="zip"><b>Full backup</b> (.zip)<small>floors, rooms, walls and plan images</small></button>
@@ -188,7 +222,7 @@
       <label>Show labels <input id="showLabels" type="checkbox" checked></label>
     </div>
   </div>
-  <div class="sec" style="padding-bottom:8px"><h2 id="listTitle">Boxes</h2><input id="listSearch" placeholder="Search number or name…" autocomplete="off">
+  <div class="sec" style="padding-bottom:8px"><button id="bListClose" class="narrow" title="Close the list" style="float:right;padding:2px 8px">✕</button><h2 id="listTitle">Boxes</h2><input id="listSearch" placeholder="Search number or name…" autocomplete="off">
     <div id="autoBar"><span id="autoCount"></span><button id="bAutoNext">Check next ▸</button><button id="bAutoAll" title="Mark every auto-drawn box on this floor as checked">All look right</button></div></div>
   <div id="list"></div>
   <details class="sec help only2d" style="border-top:1px solid var(--line);border-bottom:0">
@@ -206,25 +240,27 @@
   </details>
 </aside>
 
-<main>
+<main id="main">
   <canvas id="cv"></canvas>
   <div id="palette" class="only2d"></div>
+  <!-- edit bar: docked at the bottom of the plan, never on top of the box being edited -->
   <div id="editCard">
-    <button id="ecClose" class="x" title="Close (Esc)">✕</button>
-    <div id="editForm" style="display:none">
-      <div id="autoNote" class="autonote" style="display:none">Drawn automatically from the PDF. Check the shape, type and name, then
-        <button id="bAutoOk" class="primary">✓ Looks right</button></div>
-      <div class="field"><span>Type</span><div class="types" id="iType"></div></div>
-      <label class="field"><span id="lNo">Room No. (required)</span><input id="iNo" autocomplete="off" placeholder="e.g. G01"></label>
-      <label class="field"><span>Name (optional)</span><input id="iName" autocomplete="off" placeholder="e.g. Meeting room"></label>
-      <div class="field"><span>Size (m)</span><div class="size"><input id="iW" type="number" step="0.1" min="0.3" title="Width"><span>×</span><input id="iD" type="number" step="0.1" min="0.3" title="Depth"></div></div>
+    <div id="editForm" class="sb" style="display:none">
+      <span id="sbChip" class="chip"></span>
+      <select id="iTypeSel" title="Type of this box"></select>
+      <input id="iNo" class="no" autocomplete="off" placeholder="No." title="Number">
+      <input id="iName" class="nm" autocomplete="off" placeholder="Name (optional)" title="Name">
+      <span class="sz" id="szBox" title="Width × depth in metres"><input id="iW" type="number" step="0.1" min="0.3"><i>×</i><input id="iD" type="number" step="0.1" min="0.3"><i>m</i></span>
+      <button id="bAutoOk" class="primary" title="This auto-drawn box is right: confirm it and go to the next one">✓ Looks right</button>
+      <button id="bDel" class="danger" title="Delete this box (Del)">🗑</button>
+      <button id="bDone" class="x" title="Close (Esc)">✕</button>
       <div class="warn" id="warn"></div>
-      <div class="grp"><button id="bDone">Done ⏎</button><button id="bDel" class="danger">🗑 Delete</button></div>
     </div>
-    <div id="wallForm" style="display:none">
-      <div class="field"><span>Wall</span><div id="wLen" class="empty"></div></div>
-      <label class="field"><span>Thickness (m)</span><input id="wT" type="number" step="0.05" min="0.02" max="3"></label>
-      <div class="grp"><button id="wDone">Done</button><button id="wDel" class="danger">🗑 Delete wall</button></div>
+    <div id="wallForm" class="sb" style="display:none">
+      <span class="chip" style="background:#273244;border:1px solid #6b7280"></span><b>Wall</b><span id="wLen" class="muted"></span>
+      <label class="muted">thickness <input id="wT" type="number" step="0.05" min="0.02" max="3"> m</label>
+      <span style="flex:1"></span>
+      <button id="wDel" class="danger" title="Delete this wall (Del)">🗑</button><button id="wDone" class="x" title="Close (Esc)">✕</button>
     </div>
   </div>
   <div id="zoombar" class="only2d">
@@ -491,6 +527,7 @@ const tabs = $('floorTabs');
 function buildTabs(){
   tabs.innerHTML = '';
   const list = mode === '3d' ? [['All',-1], ...floors.map((f,i)=>[f.name,i])] : floors.map((f,i)=>[f.name,i]);
+  $('floorSel').innerHTML = list.map(([n,i]) => `<option value="${i}"${i === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
   list.forEach(([n,i]) => {
     const b = document.createElement('button'); b.textContent = n;
     b.classList.toggle('on', i === cur);
@@ -526,7 +563,7 @@ function refreshUI(){
     const extra = t === 'room' ? r.name : (r.no && r.name ? r.name : (r.no || r.name ? TYPES[t].label : ''));
     d.querySelector('.nm').textContent = (cur < 0 ? floorName(r.floor) + ' · ' : '') + (extra || '');
     if (r.auto) d.insertAdjacentHTML('beforeend', '<span class="tag">auto</span>');
-    d.onclick = () => { if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
+    d.onclick = () => { document.body.classList.remove('list-open'); if (mode === '2d') { selectRoom(r.id); centerOn(r); } else view3d.focus(r); };
     $('list').appendChild(d);
   });
   if (cur >= 0 && floors[cur] && (!q || 'wall'.includes(q))) floorWalls(cur).forEach((w, i) => {   // walls, so they are easy to find and delete
@@ -534,7 +571,7 @@ function refreshUI(){
     d.className = 'room' + (w.id === selWall ? ' sel' : '');
     d.innerHTML = `<span class="ic" style="background:#273244;border:1px solid #6b7280"></span><b>Wall ${i+1}</b><span class="nm"></span>`;
     d.querySelector('.nm').textContent = `${Math.hypot(w.x1-w.x0, w.y1-w.y0).toFixed(1)} m · ${w.t} m thick`;
-    d.onclick = () => { if (mode !== '2d') return; selectWall(w.id);
+    d.onclick = () => { if (mode !== '2d') return; document.body.classList.remove('list-open'); selectWall(w.id);
       centerOn({x0:Math.min(w.x0,w.x1)-1, x1:Math.max(w.x0,w.x1)+1, y0:Math.min(w.y0,w.y1)-1, y1:Math.max(w.y0,w.y1)+1}); };
     $('list').appendChild(d);
   });
@@ -547,14 +584,15 @@ function refreshUI(){
   }
   if (r) {
     const t = typeOf(r);
-    typeButtons($('iType'), t, setSelType);
-    $('autoNote').style.display = r.auto ? '' : 'none';
-    $('lNo').textContent = t === 'room' ? 'Room No. (required)' : 'Number (optional)';
+    $('iTypeSel').innerHTML = TYPE_KEYS.map(k => `<option value="${k}"${k === t ? ' selected' : ''}>${TYPES[k].label}</option>`).join('');
+    $('sbChip').style.background = TYPES[t].color;
+    $('bAutoOk').style.display = r.auto ? '' : 'none';
+    $('iNo').title = t === 'room' ? 'Room number (required)' : 'Number (optional)';
     $('iNo').placeholder = t === 'room' ? 'e.g. G01' : t === 'elevator' ? 'e.g. L1' : t === 'stair' ? 'e.g. S1' : '';
     $('iName').placeholder = {room:'e.g. Meeting room', bathroom:'e.g. Women\'s toilet', walkway:'e.g. Main corridor', garden:'e.g. Courtyard', balcony:'e.g. East balcony', stair:'e.g. Fire stair', elevator:'e.g. Lift A', empty:'e.g. Atrium'}[t];
     if (document.activeElement !== $('iNo')) $('iNo').value = r.no;
     if (document.activeElement !== $('iName')) $('iName').value = r.name;
-    $('iW').closest('.field').style.display = r.pts ? 'none' : '';    // corner-drawn shapes are resized by their dots
+    $('szBox').style.display = r.pts ? 'none' : '';               // corner-drawn shapes are resized by their dots
     if (document.activeElement !== $('iW')) $('iW').value = +(r.x1-r.x0).toFixed(2);
     if (document.activeElement !== $('iD')) $('iD').value = +(r.y1-r.y0).toFixed(2);
     validate(r);
@@ -602,7 +640,7 @@ function nextAuto(){
   if (!r) { finishEdit(); return toast('Every auto-drawn box on this floor is checked.'); }
   selectRoom(r.id); centerOn(r);
 }
-$('bAutoNext').onclick = nextAuto;
+$('bAutoNext').onclick = () => { document.body.classList.remove('list-open'); nextAuto(); };
 $('bAutoAll').onclick = () => {
   const list = floorRooms(cur).filter(r => r.auto); if (!list.length) return;
   if (!confirm(`Mark all ${list.length} auto-drawn boxes on ${floors[cur].name} as checked?`)) return;
@@ -651,8 +689,10 @@ function fit(){
   view.ox = (W - (x1-x0)*view.s)/2 - x0*view.s; view.oy = (H - (y1-y0)*view.s)/2 - y0*view.s; draw();
 }
 function centerOn(r){
-  const W = cv.clientWidth, H = cv.clientHeight;
+  draw();                                                  // shows the edit bar first, so its height is known
+  const W = cv.clientWidth, H = bar.style.display === 'block' ? bar.offsetTop - 10 : cv.clientHeight;   // area not covered by the edit bar
   view.s = Math.max(view.s, Math.min(W/(r.x1-r.x0), H/(r.y1-r.y0)) * 0.35);
+  view.s = Math.min(view.s, Math.min(W/(r.x1-r.x0), H/(r.y1-r.y0)) * 0.8);   // and never so close that the box does not fit
   view.ox = W/2 - (r.x0+r.x1)/2*view.s; view.oy = H/2 - (r.y0+r.y1)/2*view.s; draw();
 }
 function drawPlan(f, alpha=1){
@@ -802,8 +842,10 @@ function draw(){
   const sr = selId && list.find(r => r.id === selId);
   if (sr) {
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffd23f'; ctx.beginPath(); pathOf(sr); ctx.stroke();
-    handles(sr).forEach(([hx,hy]) => { const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=2;
-      if (sr.pts) { ctx.beginPath(); ctx.arc(p,q,7,0,7); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(p-6,q-6,12,12); ctx.strokeRect(p-6,q-6,12,12); } });
+    const [,, sw_, sh_] = scrRect(sr), small = !sr.pts && (sw_ < 70 || sh_ < 70), hsz = small ? 4 : 6;
+    handles(sr).forEach(([hx,hy], k) => { if (small && k % 2) return;          // small on screen: corners only (edges still drag)
+      const [p,q] = toScr(hx,hy); ctx.fillStyle='#fff'; ctx.strokeStyle='#d9a400'; ctx.lineWidth=2;
+      if (sr.pts) { ctx.beginPath(); ctx.arc(p,q,7,0,7); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(p-hsz,q-hsz,2*hsz,2*hsz); ctx.strokeRect(p-hsz,q-hsz,2*hsz,2*hsz); } });
     if (sr.pts && !drag) midpoints(sr).forEach(([hx,hy]) => {            // + in the middle of each side: drag it to add a corner
       const [p,q] = toScr(hx,hy); ctx.beginPath(); ctx.arc(p,q,6,0,7); ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fill(); ctx.strokeStyle='#d9a400'; ctx.lineWidth=1.2; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(p-3,q); ctx.lineTo(p+3,q); ctx.moveTo(p,q-3); ctx.lineTo(p,q+3); ctx.stroke(); });
@@ -824,18 +866,24 @@ function draw(){
   if (!exporting) { placeBar(align ? null : sr || sw); updateHint(); }
 }
 // the edit card sits next to the selected box (or wall), clear of the tool palette
+// the edit bar is docked at the bottom of the plan; when something new is selected, the plan scrolls
+// so it isn't hidden behind the bar
+let barFor = null;
 function placeBar(r){
-  if (!r || (drag && drag.kind !== 'pan')) { bar.style.display = 'none'; return; }
+  const show = !!r && !(drag && drag.kind !== 'pan');
+  bar.style.display = show ? 'block' : 'none';
+  $('main').style.setProperty('--sb', show ? bar.offsetHeight + 8 + 'px' : '0px');
+  if (!r) { barFor = null; return; }
+  if (barFor === r.id) return;
+  barFor = r.id;
   const box = r.t !== undefined ? {x0:Math.min(r.x0,r.x1), x1:Math.max(r.x0,r.x1), y0:Math.min(r.y0,r.y1), y1:Math.max(r.y0,r.y1)} : r;
-  bar.style.display = 'block';
-  const [a,b,w] = scrRect(box), cw = bar.offsetWidth, ch = bar.offsetHeight, W = cv.clientWidth, H = cv.clientHeight, left = $('palette').offsetWidth + 20;
-  let x = a + w + 14;
-  if (x + cw > W - 8) x = a - cw - 14;
-  if (x < left) x = Math.min(Math.max(left, a + w/2 - cw/2), W - cw - 8);
-  bar.style.left = Math.max(8, x) + 'px';
-  bar.style.top = Math.min(Math.max(8, b), H - ch - 8) + 'px';
+  const [a,b,w,h] = scrRect(box), W = cv.clientWidth, Hfree = bar.offsetTop - 10;
+  if (b + h > Hfree || b < 0 || a + w < 0 || a > W) {                  // move the view so the box sits in the visible area
+    view.ox += W/2 - (a + w/2); view.oy += Math.max(10, Hfree/2) - (b + h/2);
+    requestAnimationFrame(draw);
+  }
 }
-$('ecClose').onclick = () => finishEdit();
+$('iTypeSel').onchange = e => { setSelType(e.target.value); $('iTypeSel').blur(); };
 const HN = ['nw','n','ne','e','se','s','sw','w'];
 function handles(r){ if (r.pts) return r.pts; const mx=(r.x0+r.x1)/2, my=(r.y0+r.y1)/2;
   return [[r.x0,r.y0],[mx,r.y0],[r.x1,r.y0],[r.x1,my],[r.x1,r.y1],[mx,r.y1],[r.x0,r.y1],[r.x0,my]]; }
@@ -1005,7 +1053,7 @@ function renderPalette(){
   const items = [{t:'select', label:'Select', key:'V', ic:'↖'}, '-',
     ...TYPE_KEYS.map((k, i) => ({t:'draw', type:k, label:TYPES[k].label, key:String(i+1), color:TYPES[k].color})), '-',
     {t:'wall', label:'Wall', key:'W', ic:'▬'}, {t:'pan', label:'Pan', key:'H', ic:'✋'}, '-',
-    {shape:'box', label:'Drag a box', key:'C', ic:'▭'}, {shape:'corners', label:'Click corners', key:'C', ic:'⬠'}];
+    shapeMode === 'corners' ? {shape:'box', label:'Click corners', key:'C', ic:'⬠'} : {shape:'corners', label:'Drag a box', key:'C', ic:'▭'}];
   const el = $('palette'); el.innerHTML = '';
   for (const it of items) {
     if (it === '-') { el.insertAdjacentHTML('beforeend', '<div class="div"></div>'); continue; }
@@ -1015,9 +1063,9 @@ function renderPalette(){
     if (it.color) ic.style.background = it.color; else ic.textContent = it.ic;
     b.querySelector('.lb').textContent = it.label;
     b.title = it.t === 'draw' ? `Draw a ${it.label.toLowerCase()} (${it.key})` : `${it.label} (${it.key})`;
-    if (it.shape) {                                       // how the drawing tools work: drag a rectangle, or click corners
-      b.title = it.shape === 'box' ? 'Drag to draw a rectangle (C switches)' : 'Click a dot on each corner, then click the first dot to finish (C switches)';
-      b.classList.toggle('on', shapeMode === it.shape); b.onclick = () => setShape(it.shape);
+    if (it.shape) {                                       // one switch: drag a rectangle <-> click corners
+      b.title = shapeMode === 'corners' ? 'Now: click a dot on each corner. Click to switch to dragging boxes (C)' : 'Now: drag to draw a rectangle. Click to switch to clicking corners (C)';
+      b.classList.add('mode'); b.onclick = () => setShape(it.shape);
       el.appendChild(b); continue;
     }
     b.classList.toggle('on', it.t === tool && (it.t !== 'draw' || it.type === drawType));
@@ -1031,6 +1079,7 @@ function zoomBy(k){ const cx = cv.clientWidth/2, cy = cv.clientHeight/2, s = Mat
 $('bZoomIn').onclick = () => zoomBy(1.4); $('bZoomOut').onclick = () => zoomBy(1/1.4);
 $('bList').onclick = () => document.body.classList.toggle(matchMedia('(max-width:900px)').matches ? 'list-open' : 'list-closed');
 $('listSearch').oninput = () => refreshUI();
+$('bListClose').onclick = () => document.body.classList.remove('list-open');
 $('bFit').onclick = fit; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function cancelDrag(){
@@ -1226,12 +1275,14 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { if (e.code === 'Space') { space = false; setTool(tool); } });
 // the header wraps onto two lines on narrow screens; keep the plan and list just below it
-const fitHeader = () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
+const fitHeader = () => { document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
+  document.documentElement.style.setProperty('--pal', $('palette').offsetHeight + 'px'); };
 addEventListener('resize', () => { fitHeader(); resize(); view3d.resize(); });
 fitHeader();
 // the canvas must be redrawn at its real size whenever its box changes (list shown/hidden, header wrapping,
 // window resized); otherwise the picture is stretched and dots/clicks land away from the pointer
 new ResizeObserver(fitHeader).observe(document.querySelector('header'));
+new ResizeObserver(fitHeader).observe($('palette'));
 new ResizeObserver(() => { if (cv.clientWidth && (cv.width !== Math.round(cv.clientWidth*(devicePixelRatio||1)) || cv.height !== Math.round(cv.clientHeight*(devicePixelRatio||1)))) resize(); }).observe(cv);
 
 // ---------- export / import ----------
@@ -1283,6 +1334,19 @@ async function runExport(kind){
     if (kind === 'glb')   { toast('Building the 3D model…', 10000); download(await view3d.exportGlb(), `waypoint-3d-${stamp()}.glb`); toast('3D model downloaded (.glb).'); }
   } catch (err) { console.error(err); toast('Export failed: ' + (err.message || err)); }
 }
+$('floorSel').onchange = e => setFloor(+e.target.value);
+// ⋯ menu on narrow screens: each entry presses the matching (hidden) header button
+$('bMore').onclick = e => {
+  e.stopPropagation(); const m = $('mMore'), r = e.currentTarget.getBoundingClientRect();
+  m.style.top = (r.bottom + 6) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 270)) + 'px'; m.classList.toggle('open');
+};
+$('mMore').querySelectorAll('button').forEach(b => b.onclick = e => {
+  e.stopPropagation(); $('mMore').classList.remove('open');
+  const target = $(b.dataset.click);
+  if (b.dataset.click === 'bExport') { const m = $('mExport'); m.style.top = '56px'; m.style.left = '8px'; m.classList.add('open'); }
+  else target.click();
+});
+addEventListener('click', () => $('mMore').classList.remove('open'));
 $('bExport').onclick = e => {
   e.stopPropagation(); const m = $('mExport'), r = e.currentTarget.getBoundingClientRect();
   m.style.top = (r.bottom + 6) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 270)) + 'px'; m.classList.toggle('open');
